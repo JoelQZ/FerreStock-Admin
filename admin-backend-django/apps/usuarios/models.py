@@ -1,6 +1,7 @@
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
+from django.utils import timezone
 
 
 class Rol(models.Model):
@@ -10,6 +11,7 @@ class Rol(models.Model):
         DUENO = 'DUENO', 'Dueño'
 
     nombre = models.CharField(max_length=20, choices=Nombre.choices, unique=True)
+    descripcion = models.CharField(max_length=255, blank=True)
 
     class Meta:
         db_table = 'rol'
@@ -42,9 +44,11 @@ class UsuarioManager(BaseUserManager):
 
 class Usuario(AbstractBaseUser, PermissionsMixin):
     rol = models.ForeignKey(Rol, on_delete=models.PROTECT, related_name='usuarios')
+    nombre = models.CharField(max_length=150, blank=True)
     usuario = models.CharField(max_length=150, unique=True)
     estado = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    creado_en = models.DateTimeField(default=timezone.now, editable=False)
 
     objects = UsuarioManager()
 

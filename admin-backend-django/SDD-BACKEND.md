@@ -79,6 +79,9 @@ admin-backend-django/apps/
   * **Payload:** `{"refresh": "..."}`
 * **`GET /api/auth/yo/`**
   * **Respuesta:** Datos del usuario autenticado (id, nombre, usuario, rol).
+* **Autenticación por sesión:** disponible para la API navegable de DRF en `/api-auth/`.
+* **Gestión (solo administrador):** CRUD de roles en `/api/roles/` y usuarios en `/api/usuarios/`.
+  * La eliminación de un usuario lo desactiva; no borra físicamente el registro.
 
 ### 4.2. App: `catalogo` (`/api/catalogo/`)
 * **`GET / POST /api/catalogo/categorias/`**
@@ -86,40 +89,57 @@ admin-backend-django/apps/
 * **`GET / POST /api/catalogo/marcas/`**
 * **`GET / PUT / PATCH / DELETE /api/catalogo/marcas/{id}/`**
 * **`GET /api/catalogo/unidades/`** *(ReadOnlyViewSet)*
+  * Las categorías, marcas y productos se eliminan de forma lógica (`estado = False`).
 * **`GET / POST /api/catalogo/productos/`**
   * **Query Params:**
     * `?categoria=<id>` : Filtra por categoría.
     * `?buscar=<texto>` : Búsqueda parcial por código o nombre.
     * `?todos=1` : Incluye registros deshabilitados.
+  * El stock es de solo lectura en este CRUD; se actualiza mediante ingresos y movimientos de inventario.
 * **`GET / PUT / PATCH / DELETE /api/catalogo/productos/{id}/`**
 
 ### 4.3. App: `inventario` (`/api/inventario/`)
 * **`GET / POST /api/inventario/proveedores/`**
 * **`GET / POST /api/inventario/ingresos/`**
+  * **Payload:** `{"proveedor": 1, "nro_documento": "F001-123", "detalles": [{"producto": 1, "cantidad": "2.500", "costo_unitario": "10.00"}]}`
   * **Acción:** Registra la compra, aumenta el stock de `producto` y genera la entrada en `movimiento_inventario`.
 * **`GET /api/inventario/kardex/`**
   * **Respuesta:** Lista de movimientos de inventario (`movimiento_inventario`).
+* Los ingresos y el kárdex son de solo lectura después de crear el ingreso; los proveedores admiten CRUD con borrado lógico.
 
 ### 4.4. App: `ventas` (`/api/ventas/`)
 * **`GET / POST /api/ventas/clientes/`**
+* **`GET / POST /api/ventas/comprobantes/`**; el correlativo se asigna automáticamente al registrar la venta.
+* **`GET /api/ventas/metodos-pago/`**
 * **`GET / POST /api/ventas/ventas/`**
-  * **Acción:** Procesa la venta, verifica turno abierto en `caja`, descuenta el stock en `producto` y registra la salida en `movimiento_inventario`.
+  * **Payload:** `{"tipo_comprobante": 1, "cliente": 1, "detalles": [{"producto": 1, "cantidad": "2.000"}], "pagos": [{"metodo": 1, "monto": "23.60", "monto_recibido": "25.00"}]}`
+  * El cliente es opcional. El precio se toma del producto activo, el IGV de `negocio` (18 % si aún no hay configuración) y los pagos deben sumar el total exacto; admite pagos mixtos y calcula el vuelto en efectivo.
+  * **Acción:** Procesa la venta, verifica turno abierto del usuario, bloquea filas de stock, descuenta inventario y registra cada salida en `movimiento_inventario` dentro de una transacción.
 * **`POST /api/ventas/ventas/{id}/anular/`**
   * **Acción:** Cambia estado de la venta y revierte el stock devuelto en el inventario.
+* Las ventas son de solo lectura después de crearse; clientes admiten CRUD y métodos de pago son de solo lectura.
 
 ### 4.5. App: `caja` (`/api/caja/`)
 * **`POST /api/caja/turnos/abrir/`**
   * **Payload:** `{"monto_inicial": 100.00}`
 * **`POST /api/caja/turnos/cerrar/`**
   * **Payload:** `{"monto_real": 500.00}` (Calcula descuadre o diferencia automáticamente).
+* **`GET /api/caja/turnos/`** y **`GET /api/caja/turnos/{id}/resumen/`**
 * **`GET / POST /api/caja/movimientos/`**
-  * **Acción:** Registra ingresos/egresos manuales de caja chica durante el turno.
+  * **Acción:** Asocia ingresos/egresos manuales al turno abierto del usuario. El cierre compara el monto real con saldo inicial + pagos en efectivo + ingresos - egresos.
 
 ### 4.6. Apps: `configuracion` & `ia`
 * **`GET / PUT /api/configuracion/negocio/`**
   * **Acción:** Obtención y actualización de datos generales de la empresa y porcentaje de IGV.
 * **`GET /api/ia/predicciones/`**
   * **Respuesta:** Listado de predicciones de agotamiento de stock y sugerencias de compra.
+  * Filtros opcionales: `?producto=<id>` y `?dias_maximos=<días>`. Solo se muestran productos activos.
+
+### 4.7. App: `reportes` (`/api/reportes/`)
+* **`GET /api/reportes/ventas/?desde=YYYY-MM-DD&hasta=YYYY-MM-DD`**: resumen de ventas completadas y agregados diarios de subtotal, IGV y total.
+* **`GET /api/reportes/productos-mas-vendidos/?desde=YYYY-MM-DD&hasta=YYYY-MM-DD&limite=10`**: cantidades y montos por producto (límite máximo 100).
+* **`GET /api/reportes/movimientos-caja/?desde=YYYY-MM-DD&hasta=YYYY-MM-DD`**: totales de ingresos/egresos y desglose diario por tipo.
+* Las fechas son opcionales; cuando se omiten, el reporte consulta todo el histórico. El acceso se restringe a los roles Administrador y Dueño.
 
 ---
 
