@@ -6,7 +6,7 @@ from rest_framework import generics
 from rest_framework.response import Response
 
 from apps.caja.models import MovimientoCaja
-from apps.ventas.models import DetalleVenta, Venta
+from apps.ventas.models import DetalleVenta, Pago, Venta
 
 from .permissions import PuedeConsultarReportes
 from .serializers import (
@@ -15,6 +15,7 @@ from .serializers import (
     PeriodoReporteSerializer,
     ProductoMasVendidoSerializer,
     VentasPorPeriodoSerializer,
+    VentasReporteSerializer,
 )
 
 MONEY_FIELD = DecimalField(max_digits=14, decimal_places=2)
@@ -43,16 +44,32 @@ def filter_period(queryset, field, desde, hasta):
 
 class VentasPorPeriodoView(generics.GenericAPIView):
     permission_classes = (PuedeConsultarReportes,)
-    serializer_class = PeriodoReporteSerializer
+    serializer_class = VentasReporteSerializer
 
     def get(self, request):
-        params = validated_period(request)
+        params = validated_period(request, VentasReporteSerializer)
         ventas = filter_period(
             Venta.objects.filter(estado=Venta.Estado.COMPLETADA),
             'fecha_hora',
             params.get('desde'),
             params.get('hasta'),
         )
+        if params.get('turno'):
+            ventas = ventas.filter(turno_id=params['turno'])
+        por_metodo_pago = [
+            {
+                'metodo': fila['metodo__nombre'],
+                'cantidad_ventas': fila['cantidad_ventas'],
+                'total': money(fila['total']),
+            }
+            for fila in Pago.objects.filter(venta__in=ventas)
+            .values('metodo__nombre')
+            .annotate(
+                cantidad_ventas=Count('venta', distinct=True),
+                total=Sum('monto', output_field=MONEY_FIELD),
+            )
+            .order_by('metodo__nombre')
+        ]
         resumen = ventas.aggregate(
             cantidad_ventas=Count('id_venta'),
             subtotal=Sum('subtotal', output_field=MONEY_FIELD),
@@ -79,12 +96,14 @@ class VentasPorPeriodoView(generics.GenericAPIView):
         data = {
             'desde': params.get('desde'),
             'hasta': params.get('hasta'),
+            'turno': params.get('turno'),
             'resumen': {
                 'cantidad_ventas': resumen['cantidad_ventas'],
                 'subtotal': money(resumen['subtotal']),
                 'igv': money(resumen['igv']),
                 'total': money(resumen['total']),
             },
+            'por_metodo_pago': por_metodo_pago,
             'periodos': periodos,
         }
         output = VentasPorPeriodoSerializer(data=data)

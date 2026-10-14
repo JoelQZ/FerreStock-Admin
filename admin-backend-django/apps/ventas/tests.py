@@ -70,7 +70,7 @@ class VentasApiTests(APITestCase):
             'pagos': [
                 {
                     'metodo': self.efectivo.id_metodo,
-                    'monto': '23.60',
+                    'monto': '20.00',
                     'monto_recibido': '25.00',
                 },
             ],
@@ -86,13 +86,13 @@ class VentasApiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
-        self.assertEqual(response.data['subtotal'], '20.00')
-        self.assertEqual(response.data['igv'], '3.60')
-        self.assertEqual(response.data['total'], '23.60')
+        self.assertEqual(response.data['subtotal'], '16.95')
+        self.assertEqual(response.data['igv'], '3.05')
+        self.assertEqual(response.data['total'], '20.00')
         self.assertEqual(response.data['numero'], 1)
         self.assertEqual(len(response.data['detalles']), 1)
         self.assertEqual(len(response.data['pagos']), 1)
-        self.assertEqual(response.data['pagos'][0]['vuelto'], '1.40')
+        self.assertEqual(response.data['pagos'][0]['vuelto'], '5.00')
         self.producto.refresh_from_db()
         self.assertEqual(self.producto.stock, Decimal('8.000'))
         self.assertEqual(
@@ -113,7 +113,7 @@ class VentasApiTests(APITestCase):
                 },
                 {
                     'metodo': self.yape.id_metodo,
-                    'monto': '13.60',
+                    'monto': '10.00',
                     'codigo_operacion': 'YAPE-010',
                 },
             ]),
@@ -125,9 +125,9 @@ class VentasApiTests(APITestCase):
 
         self.assertEqual(summary.status_code, status.HTTP_200_OK)
         self.assertEqual(summary.data['ventas'], 1)
-        self.assertEqual(summary.data['ventas_total'], '23.60')
+        self.assertEqual(summary.data['ventas_total'], '20.00')
         self.assertEqual(summary.data['efectivo_ventas'], '10.00')
-        self.assertEqual(summary.data['otros_pagos'], '13.60')
+        self.assertEqual(summary.data['otros_pagos'], '10.00')
         self.assertEqual(summary.data['monto_esperado'], '60.00')
 
     def test_mixed_payments_require_exact_total_and_operation_code(self):
@@ -135,7 +135,7 @@ class VentasApiTests(APITestCase):
             reverse('venta-list'),
             self.payload(pagos=[
                 {'metodo': self.efectivo.id_metodo, 'monto': '10.00'},
-                {'metodo': self.yape.id_metodo, 'monto': '13.60'},
+                {'metodo': self.yape.id_metodo, 'monto': '10.00'},
             ]),
             format='json',
         )
@@ -148,7 +148,7 @@ class VentasApiTests(APITestCase):
                 {'metodo': self.efectivo.id_metodo, 'monto': '10.00'},
                 {
                     'metodo': self.yape.id_metodo,
-                    'monto': '13.60',
+                    'monto': '10.00',
                     'codigo_operacion': 'YAPE-001',
                 },
             ]),
@@ -181,7 +181,7 @@ class VentasApiTests(APITestCase):
         response = self.client.post(
             reverse('venta-list'),
             self.payload(pagos=[
-                {'metodo': self.efectivo.id_metodo, 'monto': '20.00'},
+                {'metodo': self.efectivo.id_metodo, 'monto': '19.00'},
             ]),
             format='json',
         )

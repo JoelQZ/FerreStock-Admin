@@ -39,6 +39,12 @@ class UsuarioManager(BaseUserManager):
         if extra_fields['is_superuser'] is not True:
             raise ValueError('Un superusuario debe tener is_superuser=True.')
 
+        rol = extra_fields.get('rol')
+        if rol is None:
+            extra_fields['rol'] = Rol.objects.get(nombre=Rol.Nombre.DUENO)
+        elif not isinstance(rol, Rol):
+            extra_fields['rol'] = Rol.objects.get(pk=rol)
+
         return self.create_user(usuario, password, **extra_fields)
 
 

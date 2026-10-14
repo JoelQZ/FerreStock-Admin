@@ -75,3 +75,8 @@ class UsuarioTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['usuario'] = user.usuario
         token['rol'] = user.rol.nombre
         return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['usuario'] = UsuarioActualSerializer(self.user).data
+        return data

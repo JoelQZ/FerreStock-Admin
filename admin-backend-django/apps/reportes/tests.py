@@ -106,6 +106,60 @@ class ReportesApiTests(APITestCase):
         self.assertEqual(response.data['resumen']['total'], '23.60')
         self.assertEqual(response.data['periodos'][0]['fecha'], '2026-10-13')
 
+    def test_sales_report_matches_payments_by_method_shift_and_lima_date(self):
+        yape = MetodoPago.objects.create(nombre='Yape', requiere_codigo=True)
+        turno_noche = Turno.objects.create(
+            usuario=self.cajero,
+            apertura=datetime(2026, 10, 13, 22, tzinfo=timezone.utc),
+            monto_inicial=Decimal('0.00'),
+        )
+        venta_noche = Venta.objects.create(
+            fecha_hora=datetime(2026, 10, 14, 1, tzinfo=timezone.utc),
+            subtotal=Decimal('25.42'),
+            igv=Decimal('4.58'),
+            total=Decimal('30.00'),
+            usuario=self.cajero,
+            turno=turno_noche,
+            tipo_comprobante=self.venta.tipo_comprobante,
+            serie='BR01',
+            numero=3,
+        )
+        Pago.objects.create(
+            venta=venta_noche,
+            metodo=self.efectivo,
+            monto=Decimal('10.00'),
+            monto_recibido=Decimal('10.00'),
+        )
+        Pago.objects.create(
+            venta=venta_noche,
+            metodo=yape,
+            monto=Decimal('20.00'),
+            monto_recibido=Decimal('20.00'),
+            codigo_operacion='YAPE-001',
+        )
+
+        response = self.client.get(
+            reverse('reporte-ventas'),
+            {'desde': '2026-10-13', 'hasta': '2026-10-13'},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['resumen']['cantidad_ventas'], 2)
+        self.assertEqual(response.data['resumen']['total'], '53.60')
+        por_metodo = {fila['metodo']: fila for fila in response.data['por_metodo_pago']}
+        self.assertEqual(por_metodo['Efectivo']['total'], '33.60')
+        self.assertEqual(por_metodo['Efectivo']['cantidad_ventas'], 2)
+        self.assertEqual(por_metodo['Yape']['total'], '20.00')
+        self.assertEqual(por_metodo['Yape']['cantidad_ventas'], 1)
+        suma_metodos = sum(Decimal(fila['total']) for fila in response.data['por_metodo_pago'])
+        self.assertEqual(suma_metodos, Decimal(response.data['resumen']['total']))
+
+        response = self.client.get(reverse('reporte-ventas'), {'turno': turno_noche.pk})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data['resumen']['cantidad_ventas'], 1)
+        self.assertEqual(response.data['resumen']['total'], '30.00')
+
     def test_top_products_report_aggregates_quantity_and_revenue(self):
         response = self.client.get(
             reverse('reporte-productos-mas-vendidos'),

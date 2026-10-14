@@ -61,6 +61,18 @@ class ProductoSerializer(serializers.ModelSerializer):
             'estado',
         )
         read_only_fields = ('id_producto',)
+        extra_kwargs = {'codigo': {'validators': []}}
+
+    def validate_codigo(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('El código es obligatorio.')
+        repetidos = Producto.objects.filter(codigo__iexact=value)
+        if self.instance:
+            repetidos = repetidos.exclude(pk=self.instance.pk)
+        if repetidos.exists():
+            raise serializers.ValidationError('Ya existe un producto con este código.')
+        return value
 
     def validate_precio_compra(self, value):
         if value < 0:
@@ -68,8 +80,8 @@ class ProductoSerializer(serializers.ModelSerializer):
         return value
 
     def validate_precio_venta(self, value):
-        if value < 0:
-            raise serializers.ValidationError('El precio de venta no puede ser negativo.')
+        if value <= 0:
+            raise serializers.ValidationError('El precio de venta debe ser mayor a cero.')
         return value
 
     def validate_stock_minimo(self, value):

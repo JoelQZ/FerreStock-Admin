@@ -260,7 +260,7 @@ class VentaCreateSerializer(serializers.Serializer):
                 )
 
         items = []
-        subtotal = Decimal('0.00')
+        total = Decimal('0.00')
         for detalle in detalles_data:
             producto = productos[detalle['producto'].pk]
             linea_subtotal = (producto.precio_venta * detalle['cantidad']).quantize(
@@ -268,15 +268,15 @@ class VentaCreateSerializer(serializers.Serializer):
                 rounding=ROUND_HALF_UP,
             )
             items.append((producto, detalle['cantidad'], producto.precio_venta, linea_subtotal))
-            subtotal += linea_subtotal
+            total += linea_subtotal
 
         negocio = Negocio.objects.order_by('pk').first()
         igv_porcentaje = negocio.igv_porcentaje if negocio else Decimal('18.00')
-        igv = (subtotal * igv_porcentaje / Decimal('100')).quantize(
+        subtotal = (total / (1 + igv_porcentaje / Decimal('100'))).quantize(
             CENTAVO,
             rounding=ROUND_HALF_UP,
         )
-        total = subtotal + igv
+        igv = total - subtotal
         if total > MONTO_MAXIMO:
             raise serializers.ValidationError({'detalles': 'El total supera el máximo permitido.'})
 
