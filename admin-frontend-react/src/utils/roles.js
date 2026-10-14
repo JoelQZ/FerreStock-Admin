@@ -1,7 +1,7 @@
 export const ROLES_PANEL = ['ADMINISTRADOR', 'DUENO']
 
 export const NOMBRE_ROL = {
-  ADMINISTRADOR: 'Administrador',
+  ADMINISTRADOR: 'Admin',
   DUENO: 'Dueño',
   CAJERO: 'Cajero',
 }

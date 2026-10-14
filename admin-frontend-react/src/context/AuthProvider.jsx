@@ -16,17 +16,23 @@ export function AuthProvider({ children }) {
     registrarExpiracion(cerrarSesion)
   }, [cerrarSesion])
 
-  const entrar = useCallback(async (usuario, password) => {
+const entrar = useCallback(async (usuario, password) => {
     const datos = await iniciarSesion(usuario, password)
-    if (!ROLES_PANEL.includes(datos.usuario.rol)) {
+    
+    // Obtener el nombre del rol (manejando si viene como string u objeto)
+    const rolRaw = typeof datos.usuario.rol === 'object' ? datos.usuario.rol?.nombre : datos.usuario.rol
+    const rolFormateado = rolRaw?.toUpperCase() // Convierte 'Administrador' -> 'ADMINISTRADOR'
+
+    if (!ROLES_PANEL.includes(rolFormateado)) {
       const error = new Error('El cajero trabaja desde el POS. Este panel es solo para el administrador y el dueño.')
       error.codigo = 'ROL'
       throw error
     }
+
     const nueva = { access: datos.access, refresh: datos.refresh, usuario: datos.usuario }
     guardarSesion(nueva)
     setSesion(nueva)
-  }, [])
+  }, [])  
 
   const valor = useMemo(
     () => ({ usuario: sesion?.usuario ?? null, entrar, cerrarSesion }),
