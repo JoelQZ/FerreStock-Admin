@@ -9,7 +9,7 @@ import {
   colorMetodo,
   comprobante,
   descargarArchivo,
-  fechaDeVenta,
+  fechaCorta,
   fechaLocal,
   filtrarVentas,
   generarCsv,
@@ -82,9 +82,9 @@ export default function Reportes() {
   return (
     <>
       <Encabezado
-        kicker="HU-11 · REPORTES"
+        kicker="Reportes"
         titulo="Reporte diario de ventas"
-        subtitulo="Ingresos con desglose por tipo de pago."
+        subtitulo="Ventas e ingresos por tipo de pago."
       >
         <div className="reporte__exportar">
           <button type="button" className="boton boton--secundario" onClick={exportarExcel} disabled={!reporte}>
@@ -145,7 +145,7 @@ export default function Reportes() {
         {rangoInvalido && <Aviso tipo="error">La fecha inicial no puede ser posterior a la fecha final.</Aviso>}
         {error && <Aviso tipo="error">{error}</Aviso>}
 
-        <section className={`kpis${cargando ? ' tabla-contenedor--cargando' : ''}`}>
+        <section className={`kpis kpis--cuatro${cargando ? ' tabla-contenedor--cargando' : ''}`}>
           <div className="tarjeta kpi kpi--alerta">
             <span>Total vendido</span>
             <strong>{formatearSoles(total)}</strong>
@@ -229,8 +229,8 @@ export default function Reportes() {
                       <td>
                         <span className="codigo">{comprobante(venta)}</span>
                       </td>
-                      <td>
-                        {fechaDeVenta(venta)} <small className="tabla__detalle">{horaDeVenta(venta)}</small>
+                      <td className="sin-corte">
+                        {fechaCorta(venta)} <small className="tabla__detalle">{horaDeVenta(venta)}</small>
                       </td>
                       <td>{venta.usuario_nombre || '—'}</td>
                       <td>{metodosDeVenta(venta)}</td>
@@ -248,7 +248,7 @@ export default function Reportes() {
               </table>
               {ventas.length > LIMITE_TABLA && (
                 <p className="tabla__pie">
-                  Mostrando {LIMITE_TABLA} de {ventas.length} ventas. Exporta a Excel para verlas todas.
+                  Mostrando {LIMITE_TABLA} de {ventas.length} ventas.
                 </p>
               )}
             </div>

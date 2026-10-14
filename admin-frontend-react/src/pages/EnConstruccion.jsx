@@ -8,8 +8,8 @@ export default function EnConstruccion({ kicker, titulo, descripcion }) {
       <main className="contenido">
         <div className="tarjeta vacio">
           <Icono nombre="tuerca" tamano={40} />
-          <h2>Módulo en construcción</h2>
-          <p>Esta sección se implementa en los siguientes sprints.</p>
+          <h2>Próximamente</h2>
+          <p>Esta sección estará disponible pronto.</p>
         </div>
       </main>
     </>

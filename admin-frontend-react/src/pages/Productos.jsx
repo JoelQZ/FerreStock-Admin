@@ -91,10 +91,15 @@ export default function Productos() {
   return (
     <>
       <Encabezado
-        kicker="HU-01 · CATÁLOGO E INVENTARIO"
+        kicker="Catálogo"
         titulo="Productos"
-        subtitulo="Registra y consulta el catálogo de la ferretería."
-      />
+        subtitulo="Gestiona los productos de la ferretería."
+      >
+        <Link to="/productos/nuevo" className="boton boton--principal">
+          <Icono nombre="mas" />
+          Nuevo producto
+        </Link>
+      </Encabezado>
 
       <main className="contenido">
         {mensaje && (
@@ -150,11 +155,6 @@ export default function Productos() {
               <input type="checkbox" checked={verTodos} onChange={(evento) => setVerTodos(evento.target.checked)} />
               Ver desactivados
             </label>
-
-            <Link to="/productos/nuevo" className="boton boton--principal herramientas__nuevo">
-              <Icono nombre="mas" />
-              Nuevo producto
-            </Link>
           </div>
 
           {error ? (
@@ -189,10 +189,10 @@ export default function Productos() {
                   <tr>
                     <th>Código</th>
                     <th>Producto</th>
-                    <th>Categoría</th>
+                    <th className="col-opcional">Categoría</th>
                     <th className="num">P. venta</th>
                     <th>Stock</th>
-                    <th>Estado</th>
+                    <th className="col-opcional">Estado</th>
                     <th className="acciones">Acciones</th>
                   </tr>
                 </thead>
@@ -208,7 +208,7 @@ export default function Productos() {
                           {producto.marca_nombre} · {producto.unidad_nombre}
                         </small>
                       </td>
-                      <td>{producto.categoria_nombre}</td>
+                      <td className="col-opcional">{producto.categoria_nombre}</td>
                       <td className="num">{formatearSoles(producto.precio_venta)}</td>
                       <td>
                         <EtiquetaStock
@@ -217,7 +217,7 @@ export default function Productos() {
                           unidad={producto.unidad_nombre}
                         />
                       </td>
-                      <td>
+                      <td className="col-opcional">
                         <span className={`etiqueta ${producto.estado ? 'etiqueta--activo' : 'etiqueta--inactivo'}`}>
                           {producto.estado ? 'Activo' : 'Desactivado'}
                         </span>

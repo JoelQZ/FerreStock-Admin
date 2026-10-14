@@ -61,14 +61,13 @@ export default function Login() {
           </ul>
         </div>
 
-        <p className="login__pie">Tecsup · Proyecto Integrador 2026-2 · Grupo 3C</p>
+        <p className="login__pie">© 2026 FerreStock</p>
       </section>
 
       <section className="login__lado">
         <form className="tarjeta login__formulario" onSubmit={enviar} noValidate>
           <p className="topbar__kicker">ACCESO AL PANEL</p>
           <h2>Iniciar sesión</h2>
-          <p className="login__ayuda">Solo para el administrador y el dueño.</p>
 
           {error && <Aviso tipo="error">{error}</Aviso>}
 

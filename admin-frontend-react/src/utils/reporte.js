@@ -21,6 +21,11 @@ export function fechaDeVenta(venta) {
   return venta.fecha_hora.slice(0, 10)
 }
 
+export function fechaCorta(venta) {
+  const [anio, mes, dia] = fechaDeVenta(venta).split('-')
+  return `${dia}/${mes}/${anio}`
+}
+
 export function horaDeVenta(venta) {
   return venta.fecha_hora.slice(11, 16)
 }

@@ -80,7 +80,7 @@ export default function ProductoForm() {
   const { id } = useParams()
   const esEdicion = Boolean(id)
   const navegar = useNavigate()
-  const { categorias, marcas, unidades, cargado: catalogosCargados, error: errorCatalogos } = useCatalogos()
+  const { categorias, marcas, unidades, error: errorCatalogos } = useCatalogos()
 
   const [form, setForm] = useState(VACIO)
   const [listo, setListo] = useState(!esEdicion)
@@ -153,13 +153,8 @@ export default function ProductoForm() {
   return (
     <>
       <Encabezado
-        kicker="HU-01 · CATÁLOGO E INVENTARIO"
+        kicker="Catálogo"
         titulo={esEdicion ? 'Editar producto' : 'Registrar producto'}
-        subtitulo={
-          esEdicion
-            ? 'Actualiza los datos del producto. El stock se ajusta desde Inventario.'
-            : 'Completa los datos para agregar un producto al catálogo.'
-        }
       >
         <Link to="/productos" className="boton boton--secundario">
           <Icono nombre="atras" />
@@ -190,7 +185,7 @@ export default function ProductoForm() {
                     placeholder="Ej.: Martillo de uña 16 oz"
                   />
                 </Campo>
-                <Campo etiqueta="Código / SKU" obligatorio error={errores.codigo} ayuda="Debe ser único.">
+                <Campo etiqueta="Código / SKU" obligatorio error={errores.codigo}>
                   <input
                     className="entrada codigo"
                     name="codigo"
@@ -214,7 +209,6 @@ export default function ProductoForm() {
                   etiqueta="Categoría"
                   obligatorio
                   error={errores.categoria}
-                  ayuda={catalogosCargados && !categorias.length ? 'No hay categorías. Créalas en el panel /admin de Django.' : ''}
                 >
                   <select className="entrada" name="categoria" value={form.categoria} onChange={cambiar}>
                     <option value="">Selecciona…</option>
@@ -274,7 +268,6 @@ export default function ProductoForm() {
                 <Campo
                   etiqueta="Stock actual"
                   error={errores.stock}
-                  ayuda="Se carga con los ingresos de mercadería (kárdex)."
                 >
                   <input
                     className="entrada"
@@ -288,7 +281,7 @@ export default function ProductoForm() {
                     disabled
                   />
                 </Campo>
-                <Campo etiqueta="Stock mínimo" error={errores.stock_minimo} ayuda="Debajo de este valor se alerta stock bajo.">
+                <Campo etiqueta="Stock mínimo" error={errores.stock_minimo}>
                   <input
                     className="entrada"
                     type="number"
@@ -308,7 +301,7 @@ export default function ProductoForm() {
                     onChange={cambiar}
                     maxLength={255}
                     rows={3}
-                    placeholder="Detalles útiles para el cajero (medidas, material, uso)."
+                    placeholder="Medidas, material o uso"
                   />
                 </Campo>
               </div>
