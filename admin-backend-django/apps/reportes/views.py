@@ -6,7 +6,7 @@ from rest_framework import generics
 from rest_framework.response import Response
 
 from apps.caja.models import MovimientoCaja
-from apps.ventas.models import DetalleVenta, Venta
+from apps.ventas.models import DetalleVenta, Pago, Venta
 
 from .permissions import PuedeConsultarReportes
 from .serializers import (
@@ -14,6 +14,7 @@ from .serializers import (
     MovimientosCajaReporteSerializer,
     PeriodoReporteSerializer,
     ProductoMasVendidoSerializer,
+    ReporteVentasParamsSerializer,
     VentasPorPeriodoSerializer,
 )
 
@@ -43,22 +44,39 @@ def filter_period(queryset, field, desde, hasta):
 
 class VentasPorPeriodoView(generics.GenericAPIView):
     permission_classes = (PuedeConsultarReportes,)
-    serializer_class = PeriodoReporteSerializer
+    serializer_class = ReporteVentasParamsSerializer
 
     def get(self, request):
-        params = validated_period(request)
+        params = validated_period(request, ReporteVentasParamsSerializer)
         ventas = filter_period(
             Venta.objects.filter(estado=Venta.Estado.COMPLETADA),
             'fecha_hora',
             params.get('desde'),
             params.get('hasta'),
         )
+        turno = params.get('turno')
+        if turno:
+            ventas = ventas.filter(turno_id=turno)
         resumen = ventas.aggregate(
             cantidad_ventas=Count('id_venta'),
             subtotal=Sum('subtotal', output_field=MONEY_FIELD),
             igv=Sum('igv', output_field=MONEY_FIELD),
             total=Sum('total', output_field=MONEY_FIELD),
         )
+        por_metodo_pago = [
+            {
+                'metodo': fila['metodo__nombre'],
+                'cantidad_pagos': fila['cantidad_pagos'],
+                'total': money(fila['total']),
+            }
+            for fila in Pago.objects.filter(venta__in=ventas)
+            .values('metodo__nombre')
+            .annotate(
+                cantidad_pagos=Count('id_pago'),
+                total=Sum('monto', output_field=MONEY_FIELD),
+            )
+            .order_by('metodo__nombre')
+        ]
         periodos = list(
             ventas.annotate(fecha_dia=TruncDate('fecha_hora'))
             .values('fecha_dia')
@@ -79,12 +97,14 @@ class VentasPorPeriodoView(generics.GenericAPIView):
         data = {
             'desde': params.get('desde'),
             'hasta': params.get('hasta'),
+            'turno': turno,
             'resumen': {
                 'cantidad_ventas': resumen['cantidad_ventas'],
                 'subtotal': money(resumen['subtotal']),
                 'igv': money(resumen['igv']),
                 'total': money(resumen['total']),
             },
+            'por_metodo_pago': por_metodo_pago,
             'periodos': periodos,
         }
         output = VentasPorPeriodoSerializer(data=data)
