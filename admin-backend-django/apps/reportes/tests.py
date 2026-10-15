@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
+from django.db import connection
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -309,3 +310,71 @@ class ReportePrecisionTests(APITestCase):
                 status.HTTP_400_BAD_REQUEST,
                 valor,
             )
+
+
+class VistaIngresosDiariosTests(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        rol = Rol.objects.create(nombre=Rol.Nombre.CAJERO)
+        cajero = Usuario.objects.create_user(
+            'cajero-vista',
+            password='A-long-password-47!',
+            rol=rol,
+        )
+        cls.turno = Turno.objects.create(
+            usuario=cajero,
+            apertura=datetime(2026, 10, 14, 13, tzinfo=timezone.utc),
+            monto_inicial=Decimal('10.00'),
+        )
+        comprobante = TipoComprobante.objects.create(nombre='Boleta vista', serie='BV01')
+        efectivo = MetodoPago.objects.create(nombre='Efectivo')
+        yape = MetodoPago.objects.create(nombre='Yape', requiere_codigo=True)
+        ventas = [
+            (1, datetime(2026, 10, 14, 15, tzinfo=timezone.utc), '50.00', efectivo, Venta.Estado.COMPLETADA),
+            (2, datetime(2026, 10, 14, 16, tzinfo=timezone.utc), '70.00', yape, Venta.Estado.COMPLETADA),
+            (3, datetime(2026, 10, 15, 3, tzinfo=timezone.utc), '20.00', efectivo, Venta.Estado.COMPLETADA),
+            (4, datetime(2026, 10, 14, 17, tzinfo=timezone.utc), '99.00', efectivo, Venta.Estado.ANULADA),
+        ]
+        for numero, fecha, total, metodo, estado in ventas:
+            venta = Venta.objects.create(
+                fecha_hora=fecha,
+                subtotal=Decimal(total),
+                igv=Decimal('0.00'),
+                total=Decimal(total),
+                estado=estado,
+                usuario=cajero,
+                turno=cls.turno,
+                tipo_comprobante=comprobante,
+                serie='BV01',
+                numero=numero,
+            )
+            Pago.objects.create(
+                venta=venta,
+                metodo=metodo,
+                monto=Decimal(total),
+                monto_recibido=Decimal(total),
+            )
+
+    def consultar_vista(self):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'SELECT fecha, metodo, cantidad_pagos, total '
+                'FROM vista_ingresos_diarios '
+                'WHERE id_turno = %s ORDER BY fecha, metodo',
+                [self.turno.pk],
+            )
+            return cursor.fetchall()
+
+    def test_view_groups_completed_payments_by_lima_day_and_method(self):
+        filas = [
+            (str(fecha), metodo, cantidad, str(total))
+            for fecha, metodo, cantidad, total in self.consultar_vista()
+        ]
+
+        self.assertEqual(
+            filas,
+            [
+                ('2026-10-14', 'Efectivo', 2, '70.00'),
+                ('2026-10-14', 'Yape', 1, '70.00'),
+            ],
+        )
