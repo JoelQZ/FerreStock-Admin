@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
+from django.db import connection
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -194,4 +195,240 @@ class ReportesApiTests(APITestCase):
         forbidden = self.client.get(reverse('reporte-ventas'))
         self.assertEqual(forbidden.status_code, status.HTTP_403_FORBIDDEN)
 
-# Create your tests here.
+
+class ReportePrecisionTests(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        rol_dueno = Rol.objects.create(nombre=Rol.Nombre.DUENO)
+        rol_cajero = Rol.objects.create(nombre=Rol.Nombre.CAJERO)
+        cls.dueno = Usuario.objects.create_user(
+            'dueno-precision',
+            password='A-long-password-47!',
+            rol=rol_dueno,
+        )
+        cls.cajero = Usuario.objects.create_user(
+            'cajero-precision',
+            password='A-long-password-47!',
+            rol=rol_cajero,
+        )
+        cls.turno_a = Turno.objects.create(
+            usuario=cls.cajero,
+            apertura=datetime(2026, 10, 14, 13, tzinfo=timezone.utc),
+            monto_inicial=Decimal('20.00'),
+        )
+        cls.turno_b = Turno.objects.create(
+            usuario=cls.cajero,
+            apertura=datetime(2026, 10, 14, 19, tzinfo=timezone.utc),
+            monto_inicial=Decimal('30.00'),
+        )
+        cls.comprobante = TipoComprobante.objects.create(
+            nombre='Boleta precision',
+            serie='BP01',
+        )
+        cls.efectivo = MetodoPago.objects.create(nombre='Efectivo')
+        cls.yape = MetodoPago.objects.create(nombre='Yape', requiere_codigo=True)
+
+        venta_1 = cls.crear_venta(cls.turno_a, 1, '65.93', '11.87', '77.80', 15)
+        Pago.objects.create(
+            venta=venta_1,
+            metodo=cls.efectivo,
+            monto=Decimal('77.80'),
+            monto_recibido=Decimal('100.00'),
+            vuelto=Decimal('22.20'),
+        )
+        venta_2 = cls.crear_venta(cls.turno_a, 2, '42.37', '7.63', '50.00', 16)
+        Pago.objects.create(
+            venta=venta_2,
+            metodo=cls.efectivo,
+            monto=Decimal('20.00'),
+            monto_recibido=Decimal('20.00'),
+        )
+        Pago.objects.create(
+            venta=venta_2,
+            metodo=cls.yape,
+            monto=Decimal('30.00'),
+            monto_recibido=Decimal('30.00'),
+            codigo_operacion='YP-001',
+        )
+        venta_3 = cls.crear_venta(cls.turno_b, 3, '100.00', '18.00', '118.00', 20)
+        Pago.objects.create(
+            venta=venta_3,
+            metodo=cls.yape,
+            monto=Decimal('118.00'),
+            monto_recibido=Decimal('118.00'),
+            codigo_operacion='YP-002',
+        )
+        venta_anulada = cls.crear_venta(
+            cls.turno_a,
+            4,
+            '25.42',
+            '4.58',
+            '30.00',
+            17,
+            Venta.Estado.ANULADA,
+        )
+        Pago.objects.create(
+            venta=venta_anulada,
+            metodo=cls.efectivo,
+            monto=Decimal('30.00'),
+            monto_recibido=Decimal('30.00'),
+        )
+
+    @classmethod
+    def crear_venta(cls, turno, numero, subtotal, igv, total, hora, estado=Venta.Estado.COMPLETADA):
+        return Venta.objects.create(
+            fecha_hora=datetime(2026, 10, 14, hora, tzinfo=timezone.utc),
+            subtotal=Decimal(subtotal),
+            igv=Decimal(igv),
+            total=Decimal(total),
+            estado=estado,
+            usuario=cls.cajero,
+            turno=turno,
+            tipo_comprobante=cls.comprobante,
+            serie='BP01',
+            numero=numero,
+        )
+
+    def setUp(self):
+        self.client.force_authenticate(self.dueno)
+
+    def pedir_reporte(self, **extra):
+        params = {'desde': '2026-10-14', 'hasta': '2026-10-14'}
+        params.update(extra)
+        response = self.client.get(reverse('reporte-ventas'), params)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        return response
+
+    def metodos(self, response):
+        return {
+            fila['metodo']: (fila['cantidad_pagos'], fila['total'])
+            for fila in response.data['por_metodo_pago']
+        }
+
+    def test_report_matches_known_sales_totals_and_ignores_cancelled(self):
+        response = self.pedir_reporte()
+
+        resumen = response.data['resumen']
+        self.assertEqual(resumen['cantidad_ventas'], 3)
+        self.assertEqual(resumen['subtotal'], '208.30')
+        self.assertEqual(resumen['igv'], '37.50')
+        self.assertEqual(resumen['total'], '245.80')
+        self.assertEqual(response.data['periodos'][0]['fecha'], '2026-10-14')
+        self.assertEqual(response.data['periodos'][0]['total'], '245.80')
+
+    def test_payment_breakdown_splits_mixed_payments_and_ignores_change(self):
+        response = self.pedir_reporte()
+
+        self.assertEqual(
+            self.metodos(response),
+            {'Efectivo': (2, '97.80'), 'Yape': (2, '148.00')},
+        )
+
+    def test_payment_breakdown_adds_up_to_sales_total(self):
+        response = self.pedir_reporte()
+
+        suma_metodos = sum(
+            Decimal(fila['total']) for fila in response.data['por_metodo_pago']
+        )
+        self.assertEqual(suma_metodos, Decimal(response.data['resumen']['total']))
+
+    def test_turno_filter_limits_sales_and_payments(self):
+        turno_a = self.pedir_reporte(turno=self.turno_a.pk)
+        self.assertEqual(turno_a.data['turno'], self.turno_a.pk)
+        self.assertEqual(turno_a.data['resumen']['cantidad_ventas'], 2)
+        self.assertEqual(turno_a.data['resumen']['subtotal'], '108.30')
+        self.assertEqual(turno_a.data['resumen']['igv'], '19.50')
+        self.assertEqual(turno_a.data['resumen']['total'], '127.80')
+        self.assertEqual(
+            self.metodos(turno_a),
+            {'Efectivo': (2, '97.80'), 'Yape': (1, '30.00')},
+        )
+
+        turno_b = self.pedir_reporte(turno=self.turno_b.pk)
+        self.assertEqual(turno_b.data['resumen']['cantidad_ventas'], 1)
+        self.assertEqual(turno_b.data['resumen']['total'], '118.00')
+        self.assertEqual(self.metodos(turno_b), {'Yape': (1, '118.00')})
+
+    def test_unknown_turno_returns_an_empty_report(self):
+        response = self.pedir_reporte(turno=999999)
+
+        self.assertEqual(response.data['resumen']['cantidad_ventas'], 0)
+        self.assertEqual(response.data['resumen']['total'], '0.00')
+        self.assertEqual(response.data['por_metodo_pago'], [])
+
+    def test_invalid_turno_is_rejected(self):
+        for valor in ('0', 'abc'):
+            response = self.client.get(reverse('reporte-ventas'), {'turno': valor})
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_400_BAD_REQUEST,
+                valor,
+            )
+
+
+class VistaIngresosDiariosTests(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        rol = Rol.objects.create(nombre=Rol.Nombre.CAJERO)
+        cajero = Usuario.objects.create_user(
+            'cajero-vista',
+            password='A-long-password-47!',
+            rol=rol,
+        )
+        cls.turno = Turno.objects.create(
+            usuario=cajero,
+            apertura=datetime(2026, 10, 14, 13, tzinfo=timezone.utc),
+            monto_inicial=Decimal('10.00'),
+        )
+        comprobante = TipoComprobante.objects.create(nombre='Boleta vista', serie='BV01')
+        efectivo = MetodoPago.objects.create(nombre='Efectivo')
+        yape = MetodoPago.objects.create(nombre='Yape', requiere_codigo=True)
+        ventas = [
+            (1, datetime(2026, 10, 14, 15, tzinfo=timezone.utc), '50.00', efectivo, Venta.Estado.COMPLETADA),
+            (2, datetime(2026, 10, 14, 16, tzinfo=timezone.utc), '70.00', yape, Venta.Estado.COMPLETADA),
+            (3, datetime(2026, 10, 15, 3, tzinfo=timezone.utc), '20.00', efectivo, Venta.Estado.COMPLETADA),
+            (4, datetime(2026, 10, 14, 17, tzinfo=timezone.utc), '99.00', efectivo, Venta.Estado.ANULADA),
+        ]
+        for numero, fecha, total, metodo, estado in ventas:
+            venta = Venta.objects.create(
+                fecha_hora=fecha,
+                subtotal=Decimal(total),
+                igv=Decimal('0.00'),
+                total=Decimal(total),
+                estado=estado,
+                usuario=cajero,
+                turno=cls.turno,
+                tipo_comprobante=comprobante,
+                serie='BV01',
+                numero=numero,
+            )
+            Pago.objects.create(
+                venta=venta,
+                metodo=metodo,
+                monto=Decimal(total),
+                monto_recibido=Decimal(total),
+            )
+
+    def consultar_vista(self):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'SELECT fecha, metodo, cantidad_pagos, total '
+                'FROM vista_ingresos_diarios '
+                'WHERE id_turno = %s ORDER BY fecha, metodo',
+                [self.turno.pk],
+            )
+            return cursor.fetchall()
+
+    def test_view_groups_completed_payments_by_lima_day_and_method(self):
+        filas = [
+            (str(fecha), metodo, cantidad, str(total))
+            for fecha, metodo, cantidad, total in self.consultar_vista()
+        ]
+
+        self.assertEqual(
+            filas,
+            [
+                ('2026-10-14', 'Efectivo', 2, '70.00'),
+                ('2026-10-14', 'Yape', 1, '70.00'),
+            ],
+        )

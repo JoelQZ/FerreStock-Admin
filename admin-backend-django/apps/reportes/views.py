@@ -14,6 +14,7 @@ from .serializers import (
     MovimientosCajaReporteSerializer,
     PeriodoReporteSerializer,
     ProductoMasVendidoSerializer,
+    ReporteVentasParamsSerializer,
     VentasPorPeriodoSerializer,
     VentasReporteSerializer,
 )
@@ -48,6 +49,10 @@ class VentasPorPeriodoView(generics.GenericAPIView):
 
     def get(self, request):
         params = validated_period(request, VentasReporteSerializer)
+    serializer_class = ReporteVentasParamsSerializer
+
+    def get(self, request):
+        params = validated_period(request, ReporteVentasParamsSerializer)
         ventas = filter_period(
             Venta.objects.filter(estado=Venta.Estado.COMPLETADA),
             'fecha_hora',
@@ -70,12 +75,29 @@ class VentasPorPeriodoView(generics.GenericAPIView):
             )
             .order_by('metodo__nombre')
         ]
+        turno = params.get('turno')
+        if turno:
+            ventas = ventas.filter(turno_id=turno)
         resumen = ventas.aggregate(
             cantidad_ventas=Count('id_venta'),
             subtotal=Sum('subtotal', output_field=MONEY_FIELD),
             igv=Sum('igv', output_field=MONEY_FIELD),
             total=Sum('total', output_field=MONEY_FIELD),
         )
+        por_metodo_pago = [
+            {
+                'metodo': fila['metodo__nombre'],
+                'cantidad_pagos': fila['cantidad_pagos'],
+                'total': money(fila['total']),
+            }
+            for fila in Pago.objects.filter(venta__in=ventas)
+            .values('metodo__nombre')
+            .annotate(
+                cantidad_pagos=Count('id_pago'),
+                total=Sum('monto', output_field=MONEY_FIELD),
+            )
+            .order_by('metodo__nombre')
+        ]
         periodos = list(
             ventas.annotate(fecha_dia=TruncDate('fecha_hora'))
             .values('fecha_dia')
@@ -97,6 +119,7 @@ class VentasPorPeriodoView(generics.GenericAPIView):
             'desde': params.get('desde'),
             'hasta': params.get('hasta'),
             'turno': params.get('turno'),
+            'turno': turno,
             'resumen': {
                 'cantidad_ventas': resumen['cantidad_ventas'],
                 'subtotal': money(resumen['subtotal']),
