@@ -13,7 +13,9 @@ export default function BarraLateral() {
           <Icono nombre="tuerca" tamano={22} />
         </span>
         <div>
-          <strong>FerreStock</strong>
+          <strong>
+            Ferre<span>Stock</span>
+          </strong>
           <small>Administración</small>
         </div>
       </div>

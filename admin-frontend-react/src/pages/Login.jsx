@@ -46,7 +46,9 @@ export default function Login() {
             <Icono nombre="tuerca" tamano={24} />
           </span>
           <div>
-            <strong>FerreStock</strong>
+            <strong>
+              Ferre<span>Stock</span>
+            </strong>
             <small>Administración</small>
           </div>
         </div>

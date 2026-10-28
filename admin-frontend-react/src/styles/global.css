@@ -2,24 +2,26 @@
   --acero: #3b434b;
   --acero-oscuro: #2f363d;
   --acero-borde: #4a535c;
-  --amarillo: #f2b705;
-  --amarillo-oscuro: #d9a404;
-  --fondo: #f3f3f0;
+  --carbon: #23282d;
+  --madera: #c08a55;
+  --madera-oscura: #a87445;
+  --fondo: #ecebe7;
   --tarjeta: #ffffff;
   --tarjeta-suave: #f8f8f5;
   --borde: #e1e1dc;
   --texto: #1f2328;
   --texto-suave: #6b7178;
   --texto-claro: #c9ced3;
-  --kicker: #8a6100;
+  --kicker: #c08a55;
   --rojo: #b42318;
   --rojo-fondo: #fdecea;
   --verde: #1f7a3a;
   --verde-fondo: #e7f4ec;
-  --ambar-fondo: #fff4cc;
+  --bajo-fondo: #fdf1d6;
+  --bajo-texto: #7a5200;
   --radio: 10px;
-  --fuente-titulo: 'Space Grotesk', system-ui, sans-serif;
-  --fuente: 'Inter', system-ui, sans-serif;
+  --fuente-titulo: 'Oswald', system-ui, sans-serif;
+  --fuente: 'Barlow', system-ui, sans-serif;
 }
 
 *,
@@ -28,12 +30,16 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-y: scroll;
+}
+
 body {
   margin: 0;
   background: var(--fondo);
   color: var(--texto);
   font-family: var(--fuente);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -41,8 +47,11 @@ body {
 h1,
 h2,
 h3 {
-  font-family: var(--fuente-titulo);
   margin: 0;
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 button,
@@ -53,14 +62,14 @@ textarea {
 }
 
 :focus-visible {
-  outline: 2px solid var(--amarillo);
+  outline: 2px solid var(--madera);
   outline-offset: 2px;
 }
 
 .cinta {
   height: 10px;
   flex-shrink: 0;
-  background: repeating-linear-gradient(45deg, var(--amarillo) 0 14px, var(--acero) 14px 28px);
+  background: repeating-linear-gradient(45deg, var(--madera) 0 14px, var(--acero) 14px 28px);
 }
 
 .admin {
@@ -82,7 +91,9 @@ textarea {
   flex-direction: column;
   height: 100vh;
   padding: 20px 0 12px;
-  background: var(--acero);
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px) 0 0 / 10px 10px,
+    linear-gradient(180deg, var(--acero), var(--carbon));
   color: var(--texto-claro);
 }
 
@@ -105,18 +116,25 @@ textarea {
   width: 40px;
   height: 40px;
   flex-shrink: 0;
+  border: 2px solid var(--madera);
   border-radius: 8px;
-  background: var(--amarillo);
-  color: var(--acero-oscuro);
+  color: var(--madera);
 }
 
 .lateral__marca strong,
 .login__marca strong {
   display: block;
   font-family: var(--fuente-titulo);
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 600;
   color: #fff;
-  letter-spacing: 0.3px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.lateral__marca strong span,
+.login__marca strong span {
+  color: var(--madera);
 }
 
 .lateral__marca small,
@@ -158,13 +176,13 @@ textarea {
 }
 
 .lateral__item.active {
-  border-left-color: var(--amarillo);
+  border-left-color: var(--madera);
   background: var(--acero-oscuro);
   color: #fff;
 }
 
 .lateral__item.active svg {
-  color: var(--amarillo);
+  color: var(--madera);
 }
 
 .lateral__salir {
@@ -190,8 +208,8 @@ textarea {
   gap: 8px;
   margin: 0;
   font-family: var(--fuente-titulo);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   letter-spacing: 1.6px;
   text-transform: uppercase;
   color: var(--kicker);
@@ -202,12 +220,12 @@ textarea {
   width: 18px;
   height: 3px;
   border-radius: 2px;
-  background: var(--amarillo);
+  background: var(--madera);
 }
 
 .topbar__titulo {
   margin: 4px 0 2px;
-  font-size: 26px;
+  font-size: 30px;
   line-height: 1.2;
 }
 
@@ -247,7 +265,7 @@ textarea {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--amarillo);
+  background: var(--madera);
   color: var(--acero-oscuro);
   font-family: var(--fuente-titulo);
   font-weight: 700;
@@ -262,7 +280,8 @@ textarea {
 
 .tarjeta {
   border: 1px solid var(--borde);
-  border-radius: var(--radio);
+  border-top: 4px solid var(--madera);
+  border-radius: 0 0 var(--radio) var(--radio);
   background: var(--tarjeta);
 }
 
@@ -288,21 +307,23 @@ textarea {
   border: 1px solid transparent;
   border-radius: 8px;
   font-family: var(--fuente-titulo);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
   text-decoration: none;
+  text-transform: uppercase;
   white-space: nowrap;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .boton--principal {
-  background: var(--amarillo);
+  background: var(--madera);
   color: var(--acero-oscuro);
 }
 
 .boton--principal:hover {
-  background: var(--amarillo-oscuro);
+  background: var(--madera-oscura);
 }
 
 .boton--secundario {
@@ -348,7 +369,7 @@ textarea {
 .entrada:focus {
   outline: none;
   border-color: var(--acero);
-  box-shadow: 0 0 0 3px rgba(242, 183, 5, 0.35);
+  box-shadow: 0 0 0 3px rgba(192, 138, 85, 0.35);
 }
 
 .entrada:disabled {
@@ -461,11 +482,11 @@ textarea.entrada {
 
 .kpi {
   padding: 16px 20px;
-  border-left: 4px solid var(--acero);
+  border-top-color: var(--acero);
 }
 
 .kpi--alerta {
-  border-left-color: var(--amarillo);
+  border-top-color: var(--madera);
 }
 
 .kpi span {
@@ -548,11 +569,12 @@ textarea.entrada {
 
 .tabla th {
   padding: 11px 16px;
-  background: var(--acero);
+  background: var(--acero-oscuro);
   color: #fff;
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
+  font-family: var(--fuente-titulo);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 1px;
   text-align: left;
   text-transform: uppercase;
   white-space: nowrap;
@@ -624,8 +646,8 @@ textarea.entrada {
 }
 
 .etiqueta--bajo {
-  background: var(--ambar-fondo);
-  color: var(--kicker);
+  background: var(--bajo-fondo);
+  color: var(--bajo-texto);
 }
 
 .etiqueta--agotado {
@@ -776,8 +798,11 @@ textarea.entrada {
   flex-direction: column;
   justify-content: space-between;
   gap: 32px;
-  padding: 58px 56px 32px;
-  background: var(--acero);
+  padding: 48px 56px 32px;
+  border-right: 4px solid var(--madera);
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px) 0 0 / 10px 10px,
+    linear-gradient(180deg, var(--acero), var(--carbon));
   color: var(--texto-claro);
 }
 
@@ -792,8 +817,8 @@ textarea.entrada {
   max-width: 460px;
   margin-bottom: 12px;
   color: #fff;
-  font-size: 36px;
-  line-height: 1.15;
+  font-size: 40px;
+  line-height: 1.1;
 }
 
 .login__mensaje p {
@@ -822,7 +847,7 @@ textarea.entrada {
   width: 10px;
   height: 10px;
   flex-shrink: 0;
-  background: var(--amarillo);
+  background: var(--madera);
   clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
 }
 
@@ -909,7 +934,7 @@ textarea.entrada {
   }
 
   .lateral__item.active {
-    border-bottom-color: var(--amarillo);
+    border-bottom-color: var(--madera);
   }
 
   .lateral__salir {
@@ -954,6 +979,8 @@ textarea.entrada {
 
   .login__panel {
     padding: 40px 16px 24px;
+    border-right: 0;
+    border-bottom: 4px solid var(--madera);
   }
 
   .login__mensaje h1 {
