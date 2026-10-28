@@ -15,7 +15,6 @@ class PeriodoReporteSerializer(serializers.Serializer):
         return attrs
 
 
-class VentasReporteSerializer(PeriodoReporteSerializer):
 class ReporteVentasParamsSerializer(PeriodoReporteSerializer):
     turno = serializers.IntegerField(required=False, min_value=1)
 
@@ -35,11 +34,9 @@ class VentasPorPeriodoFilaSerializer(ResumenVentasSerializer):
     fecha = serializers.DateField()
 
 
-class VentasPorMetodoPagoSerializer(serializers.Serializer):
-    metodo = serializers.CharField()
-    cantidad_ventas = serializers.IntegerField()
 class MetodoPagoResumenSerializer(serializers.Serializer):
     metodo = serializers.CharField()
+    cantidad_ventas = serializers.IntegerField()
     cantidad_pagos = serializers.IntegerField()
     total = serializers.DecimalField(max_digits=14, decimal_places=2)
 
@@ -49,7 +46,6 @@ class VentasPorPeriodoSerializer(serializers.Serializer):
     hasta = serializers.DateField(allow_null=True)
     turno = serializers.IntegerField(allow_null=True)
     resumen = ResumenVentasSerializer()
-    por_metodo_pago = VentasPorMetodoPagoSerializer(many=True)
     por_metodo_pago = MetodoPagoResumenSerializer(many=True)
     periodos = VentasPorPeriodoFilaSerializer(many=True)
 

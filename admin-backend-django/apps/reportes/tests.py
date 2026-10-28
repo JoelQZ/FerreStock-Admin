@@ -432,3 +432,37 @@ class VistaIngresosDiariosTests(APITestCase):
                 ('2026-10-14', 'Yape', 1, '70.00'),
             ],
         )
+
+    def test_view_keeps_early_morning_sales_on_the_same_lima_day(self):
+        turno = Turno.objects.create(
+            usuario=self.turno.usuario,
+            apertura=datetime(2026, 10, 15, 5, tzinfo=timezone.utc),
+            monto_inicial=Decimal('0.00'),
+        )
+        venta = Venta.objects.create(
+            fecha_hora=datetime(2026, 10, 15, 6, tzinfo=timezone.utc),
+            subtotal=Decimal('15.00'),
+            igv=Decimal('0.00'),
+            total=Decimal('15.00'),
+            usuario=self.turno.usuario,
+            turno=turno,
+            tipo_comprobante=TipoComprobante.objects.create(nombre='Boleta madrugada', serie='BM01'),
+            serie='BM01',
+            numero=1,
+        )
+        Pago.objects.create(
+            venta=venta,
+            metodo=MetodoPago.objects.get(nombre='Efectivo'),
+            monto=Decimal('15.00'),
+            monto_recibido=Decimal('15.00'),
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'SELECT fecha, metodo, cantidad_pagos, total '
+                'FROM vista_ingresos_diarios WHERE id_turno = %s',
+                [turno.pk],
+            )
+            filas = [(str(f), m, c, str(t)) for f, m, c, t in cursor.fetchall()]
+
+        self.assertEqual(filas, [('2026-10-15', 'Efectivo', 1, '15.00')])

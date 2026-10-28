@@ -16,7 +16,6 @@ from .serializers import (
     ProductoMasVendidoSerializer,
     ReporteVentasParamsSerializer,
     VentasPorPeriodoSerializer,
-    VentasReporteSerializer,
 )
 
 MONEY_FIELD = DecimalField(max_digits=14, decimal_places=2)
@@ -45,10 +44,6 @@ def filter_period(queryset, field, desde, hasta):
 
 class VentasPorPeriodoView(generics.GenericAPIView):
     permission_classes = (PuedeConsultarReportes,)
-    serializer_class = VentasReporteSerializer
-
-    def get(self, request):
-        params = validated_period(request, VentasReporteSerializer)
     serializer_class = ReporteVentasParamsSerializer
 
     def get(self, request):
@@ -59,22 +54,6 @@ class VentasPorPeriodoView(generics.GenericAPIView):
             params.get('desde'),
             params.get('hasta'),
         )
-        if params.get('turno'):
-            ventas = ventas.filter(turno_id=params['turno'])
-        por_metodo_pago = [
-            {
-                'metodo': fila['metodo__nombre'],
-                'cantidad_ventas': fila['cantidad_ventas'],
-                'total': money(fila['total']),
-            }
-            for fila in Pago.objects.filter(venta__in=ventas)
-            .values('metodo__nombre')
-            .annotate(
-                cantidad_ventas=Count('venta', distinct=True),
-                total=Sum('monto', output_field=MONEY_FIELD),
-            )
-            .order_by('metodo__nombre')
-        ]
         turno = params.get('turno')
         if turno:
             ventas = ventas.filter(turno_id=turno)
@@ -87,12 +66,14 @@ class VentasPorPeriodoView(generics.GenericAPIView):
         por_metodo_pago = [
             {
                 'metodo': fila['metodo__nombre'],
+                'cantidad_ventas': fila['cantidad_ventas'],
                 'cantidad_pagos': fila['cantidad_pagos'],
                 'total': money(fila['total']),
             }
             for fila in Pago.objects.filter(venta__in=ventas)
             .values('metodo__nombre')
             .annotate(
+                cantidad_ventas=Count('venta', distinct=True),
                 cantidad_pagos=Count('id_pago'),
                 total=Sum('monto', output_field=MONEY_FIELD),
             )
@@ -118,7 +99,6 @@ class VentasPorPeriodoView(generics.GenericAPIView):
         data = {
             'desde': params.get('desde'),
             'hasta': params.get('hasta'),
-            'turno': params.get('turno'),
             'turno': turno,
             'resumen': {
                 'cantidad_ventas': resumen['cantidad_ventas'],
