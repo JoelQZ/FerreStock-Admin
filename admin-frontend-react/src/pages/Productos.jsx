@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { actualizarProducto, desactivarProducto, listarProductos } from '../api/catalogo'
 import Aviso from '../components/Aviso'
+import Buscador from '../components/Buscador'
 import Encabezado from '../components/Encabezado'
-import EtiquetaStock from '../components/EtiquetaStock'
 import Icono from '../components/Icono'
+import Kpi from '../components/Kpi'
+import ProductoTabla from '../components/ProductoTabla'
+import Tarjeta from '../components/Tarjeta'
 import { erroresDeApi } from '../utils/errores'
-import { formatearSoles, tieneStockBajo } from '../utils/formato'
+import { tieneStockBajo } from '../utils/formato'
 import { useCatalogos } from '../utils/useCatalogos'
+
+const DURACION_AVISO = 4000
 
 export default function Productos() {
   const ubicacion = useLocation()
@@ -27,6 +32,12 @@ export default function Productos() {
   useEffect(() => {
     if (ubicacion.state?.aviso) navegar('.', { replace: true, state: null })
   }, [ubicacion.state, navegar])
+
+  useEffect(() => {
+    if (mensaje?.tipo !== 'ok') return undefined
+    const temporizador = setTimeout(() => setMensaje(null), DURACION_AVISO)
+    return () => clearTimeout(temporizador)
+  }, [mensaje])
 
   useEffect(() => {
     const espera = setTimeout(() => setBuscar(texto.trim()), 300)
@@ -90,11 +101,7 @@ export default function Productos() {
 
   return (
     <>
-      <Encabezado
-        kicker="Catálogo"
-        titulo="Productos"
-        subtitulo="Gestiona los productos de la ferretería."
-      >
+      <Encabezado kicker="Catálogo" titulo="Productos" subtitulo="Gestiona los productos de la ferretería.">
         <Link to="/productos/nuevo" className="boton boton--principal">
           <Icono nombre="mas" />
           Nuevo producto
@@ -109,33 +116,19 @@ export default function Productos() {
         )}
 
         <section className="kpis">
-          <div className="tarjeta kpi">
-            <span>Productos en la lista</span>
-            <strong>{cargando ? '—' : productos.length}</strong>
-          </div>
-          <div className="tarjeta kpi kpi--alerta">
-            <span>Con stock bajo</span>
-            <strong>{cargando ? '—' : conStockBajo}</strong>
-          </div>
-          <div className="tarjeta kpi">
-            <span>Categorías activas</span>
-            <strong>{categorias.length}</strong>
-          </div>
+          <Kpi etiqueta="Productos en la lista" valor={cargando ? '—' : productos.length} />
+          <Kpi etiqueta="Con stock bajo" valor={cargando ? '—' : conStockBajo} alerta />
+          <Kpi etiqueta="Categorías activas" valor={categorias.length} />
         </section>
 
-        <section className="tarjeta">
+        <Tarjeta>
           <div className="herramientas">
-            <div className="buscador">
-              <Icono nombre="buscar" />
-              <input
-                className="entrada"
-                type="search"
-                placeholder="Buscar por código o nombre…"
-                value={texto}
-                onChange={(evento) => setTexto(evento.target.value)}
-                aria-label="Buscar productos"
-              />
-            </div>
+            <Buscador
+              valor={texto}
+              onCambiar={setTexto}
+              placeholder="Buscar por código o nombre…"
+              etiqueta="Buscar productos"
+            />
 
             <select
               className="entrada herramientas__filtro"
@@ -183,71 +176,9 @@ export default function Productos() {
               )}
             </div>
           ) : (
-            <div className={`tabla-contenedor${cargando ? ' tabla-contenedor--cargando' : ''}`}>
-              <table className="tabla">
-                <thead>
-                  <tr>
-                    <th>Código</th>
-                    <th>Producto</th>
-                    <th className="col-opcional">Categoría</th>
-                    <th className="num">P. venta</th>
-                    <th>Stock</th>
-                    <th className="col-opcional">Estado</th>
-                    <th className="acciones">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {productos.map((producto) => (
-                    <tr key={producto.id_producto} className={producto.estado ? '' : 'inactiva'}>
-                      <td>
-                        <span className="codigo">{producto.codigo}</span>
-                      </td>
-                      <td>
-                        <strong className="tabla__nombre">{producto.nombre}</strong>
-                        <small className="tabla__detalle">
-                          {producto.marca_nombre} · {producto.unidad_nombre}
-                        </small>
-                      </td>
-                      <td className="col-opcional">{producto.categoria_nombre}</td>
-                      <td className="num">{formatearSoles(producto.precio_venta)}</td>
-                      <td>
-                        <EtiquetaStock
-                          stock={producto.stock}
-                          stockBajo={tieneStockBajo(producto)}
-                          unidad={producto.unidad_nombre}
-                        />
-                      </td>
-                      <td className="col-opcional">
-                        <span className={`etiqueta ${producto.estado ? 'etiqueta--activo' : 'etiqueta--inactivo'}`}>
-                          {producto.estado ? 'Activo' : 'Desactivado'}
-                        </span>
-                      </td>
-                      <td className="acciones">
-                        <div className="tabla__acciones">
-                          <Link
-                            to={`/productos/${producto.id_producto}/editar`}
-                            className="boton boton--secundario boton--chico"
-                          >
-                            <Icono nombre="editar" tamano={15} />
-                            Editar
-                          </Link>
-                          <button
-                            type="button"
-                            className={`boton boton--secundario boton--chico${producto.estado ? ' boton--peligro' : ''}`}
-                            onClick={() => cambiarEstado(producto)}
-                          >
-                            <Icono nombre="apagar" tamano={15} />
-                            {producto.estado ? 'Desactivar' : 'Reactivar'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ProductoTabla productos={productos} cargando={cargando} onCambiarEstado={cambiarEstado} />
           )}
-        </section>
+        </Tarjeta>
       </main>
     </>
   )

@@ -1,29 +1,38 @@
 import { useEffect, useState } from 'react'
 import { listarTurnos, listarVentas, obtenerReporteVentas } from '../api/reportes'
 import Aviso from '../components/Aviso'
+import Buscador from '../components/Buscador'
 import Encabezado from '../components/Encabezado'
 import Icono from '../components/Icono'
+import Kpi from '../components/Kpi'
+import Tarjeta from '../components/Tarjeta'
+import VentasTabla from '../components/VentasTabla'
 import { erroresDeApi } from '../utils/errores'
 import { formatearSoles } from '../utils/formato'
 import {
   colorMetodo,
   comprobante,
   descargarArchivo,
-  fechaCorta,
   fechaLocal,
   filtrarVentas,
   generarCsv,
-  horaDeVenta,
   metodosDeVenta,
 } from '../utils/reporte'
 
-const LIMITE_TABLA = 15
+function coincide(venta, texto) {
+  const buscado = texto.trim().toLowerCase()
+  if (!buscado) return true
+  return [comprobante(venta), venta.usuario_nombre, venta.cliente_nombre, metodosDeVenta(venta)]
+    .filter(Boolean)
+    .some((valor) => valor.toLowerCase().includes(buscado))
+}
 
 export default function Reportes() {
   const hoy = fechaLocal()
   const [desde, setDesde] = useState(hoy)
   const [hasta, setHasta] = useState(hoy)
   const [turno, setTurno] = useState('')
+  const [texto, setTexto] = useState('')
   const [version, setVersion] = useState(0)
   const [resultado, setResultado] = useState({ clave: null, reporte: null, ventas: [], turnos: [], error: '' })
 
@@ -61,6 +70,7 @@ export default function Reportes() {
   const cargando = !rangoInvalido && resultado.clave !== clave
   const { reporte, turnos, error } = resultado
   const ventas = filtrarVentas(resultado.ventas, { desde, hasta, turno })
+  const ventasVisibles = ventas.filter((venta) => coincide(venta, texto))
   const resumen = reporte?.resumen
   const cantidad = resumen?.cantidad_ventas ?? 0
   const total = Number(resumen?.total ?? 0)
@@ -76,16 +86,16 @@ export default function Reportes() {
 
   function exportarExcel() {
     if (!reporte) return
-    descargarArchivo(generarCsv(reporte, ventas), `reporte-ventas-${desde || 'inicio'}-a-${hasta || 'hoy'}.csv`, 'text/csv;charset=utf-8')
+    descargarArchivo(
+      generarCsv(reporte, ventas),
+      `reporte-ventas-${desde || 'inicio'}-a-${hasta || 'hoy'}.csv`,
+      'text/csv;charset=utf-8',
+    )
   }
 
   return (
     <>
-      <Encabezado
-        kicker="Reportes"
-        titulo="Reporte diario de ventas"
-        subtitulo="Ventas e ingresos por tipo de pago."
-      >
+      <Encabezado kicker="Reportes" titulo="Reporte diario de ventas" subtitulo="Ventas e ingresos por tipo de pago.">
         <div className="reporte__exportar">
           <button type="button" className="boton boton--secundario" onClick={exportarExcel} disabled={!reporte}>
             <Icono nombre="descargar" />
@@ -146,29 +156,17 @@ export default function Reportes() {
         {error && <Aviso tipo="error">{error}</Aviso>}
 
         <section className={`kpis kpis--cuatro${cargando ? ' tabla-contenedor--cargando' : ''}`}>
-          <div className="tarjeta kpi kpi--alerta">
-            <span>Total vendido</span>
-            <strong>{formatearSoles(total)}</strong>
-          </div>
-          <div className="tarjeta kpi">
-            <span>N.º de ventas</span>
-            <strong>{cantidad}</strong>
-          </div>
-          <div className="tarjeta kpi">
-            <span>Ticket promedio</span>
-            <strong>{formatearSoles(ticketPromedio)}</strong>
-          </div>
-          <div className="tarjeta kpi">
-            <span>IGV (18 %)</span>
-            <strong>{formatearSoles(resumen?.igv)}</strong>
-            <small className="kpi__detalle">Op. gravada {formatearSoles(resumen?.subtotal)}</small>
-          </div>
+          <Kpi etiqueta="Total vendido" valor={formatearSoles(total)} alerta />
+          <Kpi etiqueta="N.º de ventas" valor={cantidad} />
+          <Kpi etiqueta="Ticket promedio" valor={formatearSoles(ticketPromedio)} />
+          <Kpi
+            etiqueta="IGV (18 %)"
+            valor={formatearSoles(resumen?.igv)}
+            detalle={`Op. gravada ${formatearSoles(resumen?.subtotal)}`}
+          />
         </section>
 
-        <section className="tarjeta">
-          <div className="tarjeta__cabecera">
-            <h2>Desglose por tipo de pago</h2>
-          </div>
+        <Tarjeta titulo="Desglose por tipo de pago">
           {metodos.length === 0 ? (
             <p className="vacio">No hay ventas en el periodo seleccionado.</p>
           ) : (
@@ -202,58 +200,29 @@ export default function Reportes() {
               </ul>
             </div>
           )}
-        </section>
+        </Tarjeta>
 
-        <section className="tarjeta">
-          <div className="tarjeta__cabecera">
-            <h2>Últimas ventas</h2>
-          </div>
+        <Tarjeta titulo="Últimas ventas">
           {ventas.length === 0 ? (
             <p className="vacio">Aún no hay ventas registradas en este periodo.</p>
           ) : (
-            <div className="tabla-contenedor">
-              <table className="tabla">
-                <thead>
-                  <tr>
-                    <th>Comprobante</th>
-                    <th>Fecha</th>
-                    <th>Cajero</th>
-                    <th>Tipo de pago</th>
-                    <th>Estado</th>
-                    <th className="num">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ventas.slice(0, LIMITE_TABLA).map((venta) => (
-                    <tr key={venta.id_venta} className={venta.estado === 'COMPLETADA' ? '' : 'inactiva'}>
-                      <td>
-                        <span className="codigo">{comprobante(venta)}</span>
-                      </td>
-                      <td className="sin-corte">
-                        {fechaCorta(venta)} <small className="tabla__detalle">{horaDeVenta(venta)}</small>
-                      </td>
-                      <td>{venta.usuario_nombre || '—'}</td>
-                      <td>{metodosDeVenta(venta)}</td>
-                      <td>
-                        <span
-                          className={`etiqueta ${venta.estado === 'COMPLETADA' ? 'etiqueta--activo' : 'etiqueta--inactivo'}`}
-                        >
-                          {venta.estado === 'COMPLETADA' ? 'Completada' : 'Anulada'}
-                        </span>
-                      </td>
-                      <td className="num">{formatearSoles(venta.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {ventas.length > LIMITE_TABLA && (
-                <p className="tabla__pie">
-                  Mostrando {LIMITE_TABLA} de {ventas.length} ventas.
-                </p>
+            <>
+              <div className="herramientas">
+                <Buscador
+                  valor={texto}
+                  onCambiar={setTexto}
+                  placeholder="Buscar por comprobante, cajero, cliente o pago…"
+                  etiqueta="Buscar ventas"
+                />
+              </div>
+              {ventasVisibles.length === 0 ? (
+                <p className="vacio">Ninguna venta coincide con “{texto.trim()}”.</p>
+              ) : (
+                <VentasTabla ventas={ventasVisibles} />
               )}
-            </div>
+            </>
           )}
-        </section>
+        </Tarjeta>
       </main>
     </>
   )

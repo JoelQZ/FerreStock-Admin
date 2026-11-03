@@ -1236,3 +1236,71 @@ textarea.entrada {
     min-width: 140px;
   }
 }
+
+.tabla tr.detalle-venta td {
+  padding: 0 16px 14px;
+  border-top: 0;
+  background: var(--tarjeta-suave);
+}
+
+.tabla tr.detalle-venta:hover {
+  background: transparent;
+}
+
+.detalle-venta__lista {
+  margin: 0;
+  padding: 4px 0 0;
+  list-style: none;
+  border-left: 3px solid var(--madera);
+}
+
+.detalle-venta__item {
+  display: grid;
+  grid-template-columns: minmax(80px, auto) 1fr auto minmax(90px, auto);
+  gap: 12px;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px dashed var(--borde);
+}
+
+.detalle-venta__calculo {
+  color: var(--texto-suave);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.detalle-venta__importe {
+  font-family: var(--fuente-titulo);
+  font-weight: 500;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.detalle-venta__total {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 14px 0;
+  color: var(--texto-suave);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detalle-venta__total strong {
+  color: var(--texto);
+  font-family: var(--fuente-titulo);
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  .detalle-venta__item {
+    grid-template-columns: 1fr auto;
+  }
+
+  .detalle-venta__item .codigo,
+  .detalle-venta__calculo {
+    grid-column: 1 / -1;
+  }
+}

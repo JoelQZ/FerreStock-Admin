@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { actualizarProducto, crearProducto, obtenerProducto } from '../api/catalogo'
 import Aviso from '../components/Aviso'
-import Campo from '../components/Campo'
 import Encabezado from '../components/Encabezado'
-import EtiquetaStock from '../components/EtiquetaStock'
 import Icono from '../components/Icono'
+import ProductoFormulario from '../components/ProductoFormulario'
+import VistaPreviaProducto from '../components/VistaPreviaProducto'
 import { erroresDeApi } from '../utils/errores'
-import { IGV, formatearSoles } from '../utils/formato'
 import { useCatalogos } from '../utils/useCatalogos'
 
 const VACIO = {
@@ -89,7 +88,7 @@ export default function ProductoForm() {
   const [guardando, setGuardando] = useState(false)
 
   useEffect(() => {
-    if (!esEdicion) return
+    if (!esEdicion) return undefined
     let activo = true
     obtenerProducto(id).then(
       (producto) => {
@@ -108,10 +107,9 @@ export default function ProductoForm() {
     }
   }, [id, esEdicion])
 
-  function cambiar(evento) {
-    const { name, value } = evento.target
-    setForm((previo) => ({ ...previo, [name]: value }))
-    setErrores((previos) => ({ ...previos, [name]: undefined }))
+  function cambiarCampo(nombre, valor) {
+    setForm((previo) => ({ ...previo, [nombre]: valor }))
+    setErrores((previos) => ({ ...previos, [nombre]: undefined }))
   }
 
   function limpiar() {
@@ -120,8 +118,7 @@ export default function ProductoForm() {
     setGeneral('')
   }
 
-  async function guardar(evento) {
-    evento.preventDefault()
+  async function guardar() {
     const locales = validar(form)
     setErrores(locales)
     setGeneral('')
@@ -142,20 +139,9 @@ export default function ProductoForm() {
     }
   }
 
-  const precio = Number(form.precio_venta) || 0
-  const costo = Number(form.precio_compra) || 0
-  const opGravada = precio / (1 + IGV)
-  const nombreCategoria = categorias.find((item) => String(item.id_categoria) === form.categoria)?.nombre
-  const nombreMarca = marcas.find((item) => String(item.id_marca) === String(form.marca))?.nombre
-  const unidad = unidades.find((item) => String(item.id_unidad) === form.unidad)?.abreviatura
-  const stockBajo = form.stock !== '' && Number(form.stock) <= (Number(form.stock_minimo) || 0)
-
   return (
     <>
-      <Encabezado
-        kicker="Catálogo"
-        titulo={esEdicion ? 'Editar producto' : 'Registrar producto'}
-      >
+      <Encabezado kicker="Catálogo" titulo={esEdicion ? 'Editar producto' : 'Registrar producto'}>
         <Link to="/productos" className="boton boton--secundario">
           <Icono nombre="atras" />
           Volver
@@ -170,199 +156,19 @@ export default function ProductoForm() {
           <p className="tarjeta vacio">Cargando producto…</p>
         ) : (
           <div className="registro">
-            <form className="tarjeta" onSubmit={guardar} noValidate>
-              <div className="tarjeta__cabecera">
-                <h2>Datos generales</h2>
-              </div>
-              <div className="formulario__seccion">
-                <Campo etiqueta="Nombre del producto" obligatorio ancho error={errores.nombre}>
-                  <input
-                    className="entrada"
-                    name="nombre"
-                    value={form.nombre}
-                    onChange={cambiar}
-                    maxLength={120}
-                    placeholder="Ej.: Martillo de uña 16 oz"
-                  />
-                </Campo>
-                <Campo etiqueta="Código / SKU" obligatorio error={errores.codigo}>
-                  <input
-                    className="entrada codigo"
-                    name="codigo"
-                    value={form.codigo}
-                    onChange={cambiar}
-                    maxLength={50}
-                    placeholder="Ej.: MART-016"
-                  />
-                </Campo>
-                <Campo etiqueta="Marca" obligatorio error={errores.marca}>
-                  <select className="entrada" name="marca" value={form.marca} onChange={cambiar}>
-                    <option value="">Selecciona…</option>
-                    {marcas.map((item) => (
-                      <option key={item.id_marca} value={item.id_marca}>
-                        {item.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </Campo>
-                <Campo
-                  etiqueta="Categoría"
-                  obligatorio
-                  error={errores.categoria}
-                >
-                  <select className="entrada" name="categoria" value={form.categoria} onChange={cambiar}>
-                    <option value="">Selecciona…</option>
-                    {categorias.map((item) => (
-                      <option key={item.id_categoria} value={item.id_categoria}>
-                        {item.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </Campo>
-                <Campo etiqueta="Unidad de medida" obligatorio error={errores.unidad}>
-                  <select className="entrada" name="unidad" value={form.unidad} onChange={cambiar}>
-                    <option value="">Selecciona…</option>
-                    {unidades.map((item) => (
-                      <option key={item.id_unidad} value={item.id_unidad}>
-                        {item.nombre} ({item.abreviatura})
-                      </option>
-                    ))}
-                  </select>
-                </Campo>
-              </div>
-
-              <div className="tarjeta__cabecera tarjeta__cabecera--interna">
-                <h2>Precios y stock</h2>
-              </div>
-              <div className="formulario__seccion">
-                <Campo etiqueta="Precio de venta (incluye IGV)" obligatorio error={errores.precio_venta}>
-                  <div className="con-prefijo">
-                    <span>S/</span>
-                    <input
-                      className="entrada"
-                      type="number"
-                      name="precio_venta"
-                      value={form.precio_venta}
-                      onChange={cambiar}
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </Campo>
-                <Campo etiqueta="Precio de costo" obligatorio error={errores.precio_compra}>
-                  <div className="con-prefijo">
-                    <span>S/</span>
-                    <input
-                      className="entrada"
-                      type="number"
-                      name="precio_compra"
-                      value={form.precio_compra}
-                      onChange={cambiar}
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </Campo>
-                <Campo
-                  etiqueta="Stock actual"
-                  error={errores.stock}
-                >
-                  <input
-                    className="entrada"
-                    type="number"
-                    name="stock"
-                    value={form.stock}
-                    onChange={cambiar}
-                    min="0"
-                    step="0.001"
-                    placeholder="0"
-                    disabled
-                  />
-                </Campo>
-                <Campo etiqueta="Stock mínimo" error={errores.stock_minimo}>
-                  <input
-                    className="entrada"
-                    type="number"
-                    name="stock_minimo"
-                    value={form.stock_minimo}
-                    onChange={cambiar}
-                    min="0"
-                    step="0.001"
-                    placeholder="0"
-                  />
-                </Campo>
-                <Campo etiqueta="Descripción" ancho error={errores.descripcion}>
-                  <textarea
-                    className="entrada"
-                    name="descripcion"
-                    value={form.descripcion}
-                    onChange={cambiar}
-                    maxLength={255}
-                    rows={3}
-                    placeholder="Medidas, material o uso"
-                  />
-                </Campo>
-              </div>
-
-              <div className="formulario__acciones">
-                {!esEdicion && (
-                  <button type="button" className="boton boton--secundario" onClick={limpiar} disabled={guardando}>
-                    Limpiar
-                  </button>
-                )}
-                <Link to="/productos" className="boton boton--secundario">
-                  Cancelar
-                </Link>
-                <button type="submit" className="boton boton--principal" disabled={guardando}>
-                  {guardando ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Registrar producto'}
-                </button>
-              </div>
-            </form>
-
-            <aside className="tarjeta vista-previa" aria-label="Vista previa del producto">
-              <div className="vista-previa__imagen">
-                <Icono nombre="tuerca" tamano={44} />
-              </div>
-              <div className="vista-previa__cuerpo">
-                <p className="topbar__kicker">VISTA PREVIA</p>
-                <h3>{form.nombre.trim() || 'Nombre del producto'}</h3>
-                <p className="vista-previa__sub">
-                  <span className="codigo">{form.codigo.trim() || 'SKU'}</span>
-                  {' · '}
-                  {nombreMarca ?? 'Marca'}
-                </p>
-                <p className="vista-previa__precio">{formatearSoles(precio)}</p>
-
-                <dl className="vista-previa__filas">
-                  <div>
-                    <dt>Categoría</dt>
-                    <dd>{nombreCategoria ?? '—'}</dd>
-                  </div>
-                  <div>
-                    <dt>Op. gravada</dt>
-                    <dd>{formatearSoles(opGravada)}</dd>
-                  </div>
-                  <div>
-                    <dt>IGV (18 %)</dt>
-                    <dd>{formatearSoles(precio - opGravada)}</dd>
-                  </div>
-                  {costo > 0 && (
-                    <div>
-                      <dt>Ganancia por unidad</dt>
-                      <dd className={precio - costo < 0 ? 'texto-rojo' : ''}>{formatearSoles(precio - costo)}</dd>
-                    </div>
-                  )}
-                  <div>
-                    <dt>Stock</dt>
-                    <dd>
-                      <EtiquetaStock stock={form.stock || 0} stockBajo={stockBajo} unidad={unidad} />
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            </aside>
+            <ProductoFormulario
+              form={form}
+              errores={errores}
+              categorias={categorias}
+              marcas={marcas}
+              unidades={unidades}
+              esEdicion={esEdicion}
+              guardando={guardando}
+              onCambiar={cambiarCampo}
+              onGuardar={guardar}
+              onLimpiar={limpiar}
+            />
+            <VistaPreviaProducto form={form} categorias={categorias} marcas={marcas} unidades={unidades} />
           </div>
         )}
       </main>

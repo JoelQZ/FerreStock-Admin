@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useAuth } from '../context/useAuth'
 import { iniciales } from '../utils/formato'
 import { NOMBRE_ROL } from '../utils/roles'
@@ -5,6 +6,10 @@ import { NOMBRE_ROL } from '../utils/roles'
 export default function Encabezado({ kicker, titulo, subtitulo, children }) {
   const { usuario } = useAuth()
   const nombre = usuario?.nombre || usuario?.usuario
+
+  useEffect(() => {
+    document.title = `${titulo} — FerreStock Admin`
+  }, [titulo])
 
   return (
     <header className="topbar">

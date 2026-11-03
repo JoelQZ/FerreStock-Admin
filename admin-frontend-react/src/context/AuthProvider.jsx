@@ -19,9 +19,8 @@ export function AuthProvider({ children }) {
 const entrar = useCallback(async (usuario, password) => {
     const datos = await iniciarSesion(usuario, password)
     
-    // Obtener el nombre del rol (manejando si viene como string u objeto)
     const rolRaw = typeof datos.usuario.rol === 'object' ? datos.usuario.rol?.nombre : datos.usuario.rol
-    const rolFormateado = rolRaw?.toUpperCase() // Convierte 'Administrador' -> 'ADMINISTRADOR'
+    const rolFormateado = rolRaw?.toUpperCase()
 
     if (!ROLES_PANEL.includes(rolFormateado)) {
       const error = new Error('El cajero trabaja desde el POS. Este panel es solo para el administrador y el dueño.')
