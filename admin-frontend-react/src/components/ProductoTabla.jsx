@@ -1,6 +1,6 @@
 import ProductoFila from './ProductoFila'
 
-export default function ProductoTabla({ productos, cargando = false, onCambiarEstado }) {
+export default function ProductoTabla({ productos, cargando = false, onEditar, onCambiarEstado }) {
   return (
     <div className={`tabla-contenedor${cargando ? ' tabla-contenedor--cargando' : ''}`}>
       <table className="tabla">
@@ -17,7 +17,12 @@ export default function ProductoTabla({ productos, cargando = false, onCambiarEs
         </thead>
         <tbody>
           {productos.map((producto) => (
-            <ProductoFila key={producto.id_producto} producto={producto} onCambiarEstado={onCambiarEstado} />
+            <ProductoFila
+              key={producto.id_producto}
+              producto={producto}
+              onEditar={onEditar}
+              onCambiarEstado={onCambiarEstado}
+            />
           ))}
         </tbody>
       </table>

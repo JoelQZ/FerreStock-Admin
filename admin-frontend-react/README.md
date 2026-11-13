@@ -46,8 +46,9 @@ src/
 |---|---|---|
 | `Tarjeta` | Contenedor con título opcional y `children` (equivale a `{% block %}` de Django) | 10 |
 | `Kpi` | Indicador con etiqueta, valor y `alerta = false` por defecto | 10 |
-| `ProductoFila` | Un producto: código, nombre, precio, stock, estado y acciones | 10 · 11 |
-| `ProductoTabla` | Lista de productos con `map()` y `key`; reenvía `onCambiarEstado` | 10 · 11 |
+| `ProductoFila` | Un producto: código, nombre, precio, stock, estado y los botones Editar (`onEditar`) y Desactivar/Reactivar (`onCambiarEstado`) | 10 · 11 |
+| `ProductoTabla` | Lista de productos con `map()` y `key`; reenvía `onEditar` y `onCambiarEstado` | 10 · 11 |
+| `ResumenProductos` | Hermano del listado: productos en la lista y con stock bajo, calculados sin `useState` | 11 |
 | `VentaFila` | Una venta con botón **Ver productos** (`useState`) y sus detalles anidados | 10 |
 | `DetalleVentaItem` | Un producto vendido dentro de la venta (relación 1:N) | 10 |
 | `VentasTabla` | Lista de ventas con `map()`, `key` y `limite = 15` | 10 |
@@ -60,6 +61,32 @@ src/
 | `EtiquetaStock` | Muestra "Agotado", "Bajo" o la cantidad | 10 |
 | `Icono` | Íconos SVG con `tamano = 18` por defecto | 10 |
 | `BarraLateral` | Menú con `NavLink` y cierre de sesión | 9 · 13 |
+
+## Pantalla de Productos
+
+La página `pages/Productos.jsx` es el componente padre del panel: guarda en su estado la lista de productos que llega de la API, el texto de búsqueda, la categoría elegida y el aviso.
+
+```
+Productos (padre)
+├── ResumenProductos   ⬇ productos
+├── Buscador           ⬇ valor        ⬆ onCambiar(texto)
+└── ProductoTabla      ⬇ productos    ⬆ onEditar, onCambiarEstado
+    └── ProductoFila   ⬇ producto     ⬆ onEditar(producto), onCambiarEstado(producto)
+
+ProductoForm (padre del alta y la edición)
+├── ProductoFormulario    ⬇ form, errores   ⬆ onCambiar, onGuardar, onLimpiar
+└── VistaPreviaProducto   ⬇ form
+```
+
+- **Bajan por props:** la lista de productos, el texto del buscador, el formulario y sus errores.
+- **Suben por funciones:** editar, desactivar o reactivar un producto, escribir en el buscador y guardar el formulario.
+- Al desactivar o reactivar, el padre actualiza la lista con `filter()` o `map()`, sin `push` ni `splice`.
+- El formulario valida lo mismo que la API (código obligatorio y precio de venta mayor que cero) antes de enviar.
+- `useEffect` con limpieza: el aviso de éxito se oculta a los 4 segundos y la búsqueda espera 300 ms después de escribir.
+
+## Laboratorio 11 · Práctica
+
+Los ejercicios de la Parte 1 (mini catálogo con carrito de una cafetería) están en `src/practica` y se abren en **http://localhost:5173/practica**, sin login y fuera del menú del panel.
 
 ## Avance por semana
 

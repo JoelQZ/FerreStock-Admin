@@ -9,12 +9,19 @@ import Reportes from './pages/Reportes'
 import RutaPrivada from './routes/RutaPrivada'
 import { SECCIONES_PENDIENTES } from './utils/menu'
 
+// Práctica del Laboratorio 11
+import Practica from './practica/Practica'
+
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+
+          {/* Práctica del Laboratorio 11: sin login y fuera del menú del panel */}
+          <Route path="/practica" element={<Practica />} />
+
           <Route element={<RutaPrivada />}>
             <Route element={<LayoutAdmin />}>
               <Route index element={<Navigate to="/productos" replace />} />

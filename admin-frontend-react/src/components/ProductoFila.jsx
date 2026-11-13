@@ -1,9 +1,8 @@
-import { Link } from 'react-router-dom'
 import { formatearSoles, tieneStockBajo } from '../utils/formato'
 import EtiquetaStock from './EtiquetaStock'
 import Icono from './Icono'
 
-export default function ProductoFila({ producto, onCambiarEstado }) {
+export default function ProductoFila({ producto, onEditar, onCambiarEstado }) {
   return (
     <tr className={producto.estado ? '' : 'inactiva'}>
       <td>
@@ -27,10 +26,14 @@ export default function ProductoFila({ producto, onCambiarEstado }) {
       </td>
       <td className="acciones">
         <div className="tabla__acciones">
-          <Link to={`/productos/${producto.id_producto}/editar`} className="boton boton--secundario boton--chico">
+          <button
+            type="button"
+            className="boton boton--secundario boton--chico"
+            onClick={() => onEditar(producto)}
+          >
             <Icono nombre="editar" tamano={15} />
             Editar
-          </Link>
+          </button>
           <button
             type="button"
             className={`boton boton--secundario boton--chico${producto.estado ? ' boton--peligro' : ''}`}

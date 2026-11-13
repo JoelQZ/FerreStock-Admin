@@ -1304,3 +1304,103 @@ textarea.entrada {
     grid-column: 1 / -1;
   }
 }
+
+/* Práctica del Laboratorio 11 */
+
+.practica {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1200px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.practica__contenido {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.practica__linea {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 20px;
+  border-top: 1px solid var(--borde);
+}
+
+.practica__linea:first-child {
+  border-top: 0;
+}
+
+.practica__buscador {
+  max-width: 420px;
+  margin-bottom: 20px;
+}
+
+.practica__aviso {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border-left: 4px solid var(--verde);
+  background: var(--verde-fondo);
+  color: var(--verde);
+  font-weight: 600;
+}
+
+.practica__cabecera-carrito {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.practica__vacio {
+  margin: 0;
+  padding: 14px 20px;
+  color: var(--texto-suave);
+}
+
+.practica__totales {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-top: 1px solid var(--borde);
+}
+
+@media (max-width: 860px) {
+  .practica__contenido {
+    grid-template-columns: 1fr;
+  }
+}
+
+.practica__cabecera h1 {
+  font-size: 40px;
+}
+
+.practica__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.practica__item {
+  display: grid;
+  grid-template-columns: 1fr auto 130px auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 20px;
+  border-top: 1px solid var(--borde);
+}
+
+.practica__item:first-child {
+  border-top: 0;
+}
+
+.practica__precio {
+  font-family: var(--fuente-titulo);
+  font-variant-numeric: tabular-nums;
+}

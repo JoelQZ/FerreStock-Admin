@@ -5,11 +5,10 @@ import Aviso from '../components/Aviso'
 import Buscador from '../components/Buscador'
 import Encabezado from '../components/Encabezado'
 import Icono from '../components/Icono'
-import Kpi from '../components/Kpi'
 import ProductoTabla from '../components/ProductoTabla'
+import ResumenProductos from '../components/ResumenProductos'
 import Tarjeta from '../components/Tarjeta'
 import { erroresDeApi } from '../utils/errores'
-import { tieneStockBajo } from '../utils/formato'
 import { useCatalogos } from '../utils/useCatalogos'
 
 const DURACION_AVISO = 4000
@@ -19,6 +18,8 @@ export default function Productos() {
   const navegar = useNavigate()
   const { categorias } = useCatalogos()
 
+//useState ¿Qué dato tengo que recordar? recuerda un dato, como si la casilla está marcada.
+
   const [mensaje, setMensaje] = useState(() =>
     ubicacion.state?.aviso ? { tipo: 'ok', texto: ubicacion.state.aviso } : null,
   )
@@ -26,8 +27,9 @@ export default function Productos() {
   const [buscar, setBuscar] = useState('')
   const [categoria, setCategoria] = useState('')
   const [verTodos, setVerTodos] = useState(false)
-  const [version, setVersion] = useState(0)
   const [resultado, setResultado] = useState({ clave: null, productos: [], error: '' })
+
+// useEffect ¿Qué tengo que hacer cuando algo cambia? hace algo cuando ese dato cambia, como volver a cargar los productos.
 
   useEffect(() => {
     if (ubicacion.state?.aviso) navegar('.', { replace: true, state: null })
@@ -44,7 +46,7 @@ export default function Productos() {
     return () => clearTimeout(espera)
   }, [texto])
 
-  const clave = `${buscar}|${categoria}|${verTodos}|${version}`
+  const clave = `${buscar}|${categoria}|${verTodos}`
 
   useEffect(() => {
     let activo = true
@@ -74,8 +76,23 @@ export default function Productos() {
 
   const cargando = resultado.clave !== clave
   const { productos, error } = resultado
-  const conStockBajo = productos.filter((producto) => producto.estado && tieneStockBajo(producto)).length
   const hayFiltros = Boolean(buscar || categoria)
+
+  function editarProducto(producto) {
+    navegar(`/productos/${producto.id_producto}/editar`)
+  }
+
+  function actualizarLista(producto, nuevoEstado) {
+    setResultado((previo) => ({
+      ...previo,
+      productos:
+        !nuevoEstado && !verTodos
+          ? previo.productos.filter((item) => item.id_producto !== producto.id_producto)
+          : previo.productos.map((item) =>
+              item.id_producto === producto.id_producto ? { ...item, estado: nuevoEstado } : item,
+            ),
+    }))
+  }
 
   async function cambiarEstado(producto) {
     const desactivar = producto.estado
@@ -87,7 +104,7 @@ export default function Productos() {
         tipo: 'ok',
         texto: `Producto "${producto.nombre}" ${desactivar ? 'desactivado' : 'reactivado'}.`,
       })
-      setVersion((previa) => previa + 1)
+      actualizarLista(producto, !desactivar)
     } catch (falla) {
       setMensaje({ tipo: 'error', texto: erroresDeApi(falla).general || 'No se pudo cambiar el estado.' })
     }
@@ -115,11 +132,7 @@ export default function Productos() {
           </Aviso>
         )}
 
-        <section className="kpis">
-          <Kpi etiqueta="Productos en la lista" valor={cargando ? '—' : productos.length} />
-          <Kpi etiqueta="Con stock bajo" valor={cargando ? '—' : conStockBajo} alerta />
-          <Kpi etiqueta="Categorías activas" valor={categorias.length} />
-        </section>
+        <ResumenProductos productos={productos} cargando={cargando} totalCategorias={categorias.length} />
 
         <Tarjeta>
           <div className="herramientas">
@@ -176,7 +189,12 @@ export default function Productos() {
               )}
             </div>
           ) : (
-            <ProductoTabla productos={productos} cargando={cargando} onCambiarEstado={cambiarEstado} />
+            <ProductoTabla
+              productos={productos}
+              cargando={cargando}
+              onEditar={editarProducto}
+              onCambiarEstado={cambiarEstado}
+            />
           )}
         </Tarjeta>
       </main>
