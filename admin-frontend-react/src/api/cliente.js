@@ -27,7 +27,10 @@ export function registrarExpiracion(funcion) {
   alExpirarSesion = funcion
 }
 
-export const api = axios.create({ baseURL: API_URL })
+export const api = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+})
 
 api.interceptors.request.use((config) => {
   const sesion = leerSesion()

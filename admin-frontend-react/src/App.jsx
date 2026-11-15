@@ -9,7 +9,7 @@ import Reportes from './pages/Reportes'
 import RutaPrivada from './routes/RutaPrivada'
 import { SECCIONES_PENDIENTES } from './utils/menu'
 
-// Práctica del Laboratorio 11
+import ListaPractica from './practica/ListaPractica'
 import Practica from './practica/Practica'
 
 function App() {
@@ -19,8 +19,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
 
-          {/* Práctica del Laboratorio 11: sin login y fuera del menú del panel */}
-          <Route path="/practica" element={<Practica />} />
+          <Route path="/practica" element={<ListaPractica />} />
+          <Route path="/practica/lab11" element={<Practica />} />
 
           <Route element={<RutaPrivada />}>
             <Route element={<LayoutAdmin />}>

@@ -206,6 +206,51 @@ npm run dev
 ```
 (Lo mismo dentro de `pos-frontend-react`.)
 
+### 6.1 Panel admin: Django y React a la vez
+
+Son dos aplicaciones distintas que se comunican por HTTP, así que se abren **dos terminales**:
+
+| Terminal 1 · Django (8000) | Terminal 2 · React (5173) |
+|---|---|
+| `cd admin-backend-django` | `cd admin-frontend-react` |
+| `venv\Scripts\activate` | `npm run dev` |
+| `python manage.py runserver` | Abrir http://localhost:5173 |
+
+La dirección de la API se define una sola vez en `admin-frontend-react/.env` y la usa la instancia de Axios de `src/api/cliente.js` (con `timeout` de 10 s y el token JWT en cada petición):
+
+```
+VITE_API_URL=http://127.0.0.1:8000/api
+```
+
+### 6.2 Configuración de CORS
+
+React (`localhost:5173`) y Django (`127.0.0.1:8000`) son orígenes distintos, por eso Django usa `django-cors-headers`:
+
+- `corsheaders` en `INSTALLED_APPS` y `corsheaders.middleware.CorsMiddleware` en la parte alta de `MIDDLEWARE` (`config/settings.py`).
+- Los orígenes permitidos se leen del `.env` de Django:
+
+```
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174
+```
+
+Si Vite arranca en otro puerto (5174, 5175…), el navegador bloquea las respuestas: libera el 5173 o agrega ese puerto a `CORS_ALLOWED_ORIGINS` y reinicia Django.
+
+### 6.3 Endpoints que usa el panel
+
+Todas requieren el token JWT (`Authorization: Bearer <token>`).
+
+| Método | Endpoint | Uso en el panel |
+|---|---|---|
+| POST | `/api/auth/login/` · `/api/auth/refresh/` | Iniciar sesión y renovar el token |
+| GET | `/api/catalogo/productos/?buscar=&categoria=&todos=1` | Listado con búsqueda y filtros |
+| GET | `/api/catalogo/productos/{id}/` | Cargar un producto para editarlo |
+| POST | `/api/catalogo/productos/` | Registrar producto (201 o 400 con errores) |
+| PATCH | `/api/catalogo/productos/{id}/` | Editar o reactivar producto (200) |
+| DELETE | `/api/catalogo/productos/{id}/` | Desactivar producto (204, borrado lógico) |
+| GET | `/api/catalogo/categorias/` · `/marcas/` · `/unidades/` | Combos del formulario y filtro |
+| GET · POST · PATCH · DELETE | `/api/catalogo/categorias/?search=` | Práctica del Laboratorio 12 (`/practica`) |
+| GET | `/api/reportes/ventas/` · `/api/ventas/ventas/` · `/api/caja/turnos/` | Pantalla de reportes |
+
 **Spring Boot** (puerto 8080): abrir `pos-backend-springboot` en IntelliJ y ejecutar `PosBackendSpringbootApplication`. Necesita MySQL configurado.
 
 **App Kotlin:** abrir `app-movil-kotlin` en Android Studio y ejecutar en un emulador o celular.

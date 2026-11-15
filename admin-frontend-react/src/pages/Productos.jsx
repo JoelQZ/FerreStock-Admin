@@ -49,29 +49,26 @@ export default function Productos() {
   const clave = `${buscar}|${categoria}|${verTodos}`
 
   useEffect(() => {
-    let activo = true
+    const controlador = new AbortController()
     const params = {}
     if (buscar) params.buscar = buscar
     if (categoria) params.categoria = categoria
     if (verTodos) params.todos = 1
 
-    listarProductos(params).then(
+    listarProductos(params, controlador.signal).then(
       (productos) => {
-        if (activo) setResultado({ clave, productos, error: '' })
+        setResultado({ clave, productos, error: '' })
       },
       (falla) => {
-        if (activo) {
-          setResultado({
-            clave,
-            productos: [],
-            error: erroresDeApi(falla).general || 'No se pudo cargar la lista de productos.',
-          })
-        }
+        if (controlador.signal.aborted) return
+        setResultado({
+          clave,
+          productos: [],
+          error: erroresDeApi(falla).general || 'No se pudo cargar la lista de productos.',
+        })
       },
     )
-    return () => {
-      activo = false
-    }
+    return () => controlador.abort()
   }, [buscar, categoria, verTodos, clave])
 
   const cargando = resultado.clave !== clave
@@ -106,6 +103,11 @@ export default function Productos() {
       })
       actualizarLista(producto, !desactivar)
     } catch (falla) {
+      if (falla.response?.status === 404) {
+        setMensaje({ tipo: 'error', texto: `El producto "${producto.nombre}" ya no existe o ya fue desactivado.` })
+        actualizarLista(producto, false)
+        return
+      }
       setMensaje({ tipo: 'error', texto: erroresDeApi(falla).general || 'No se pudo cambiar el estado.' })
     }
   }

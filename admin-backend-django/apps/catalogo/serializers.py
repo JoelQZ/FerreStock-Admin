@@ -8,6 +8,18 @@ class CategoriaSerializer(serializers.ModelSerializer):
         model = Categoria
         fields = ('id_categoria', 'nombre', 'descripcion', 'estado')
         read_only_fields = ('id_categoria',)
+        extra_kwargs = {'nombre': {'validators': []}}
+
+    def validate_nombre(self, value):
+        value = value.strip()
+        if len(value) < 3:
+            raise serializers.ValidationError('El nombre debe tener al menos 3 caracteres.')
+        repetidos = Categoria.objects.filter(nombre__iexact=value)
+        if self.instance:
+            repetidos = repetidos.exclude(pk=self.instance.pk)
+        if repetidos.exists():
+            raise serializers.ValidationError('Ya existe una categoría con este nombre.')
+        return value
 
 
 class MarcaSerializer(serializers.ModelSerializer):

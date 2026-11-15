@@ -1,5 +1,5 @@
 from django.db.models import Q
-from rest_framework import serializers, viewsets
+from rest_framework import filters, serializers, viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from .models import Categoria, Marca, Producto, UnidadMedida
@@ -22,6 +22,14 @@ class EstadoActivoModelViewSet(viewsets.ModelViewSet):
 class CategoriaViewSet(EstadoActivoModelViewSet):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('nombre', 'descripcion')
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.query_params.get('todos') != '1':
+            queryset = queryset.filter(estado=True)
+        return queryset
 
 
 class MarcaViewSet(EstadoActivoModelViewSet):

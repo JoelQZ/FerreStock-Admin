@@ -3,7 +3,18 @@ import { api } from './cliente'
 const datos = (respuesta) => respuesta.data
 const incluirDesactivados = { params: { todos: 1 } }
 
-export const listarProductos = (params) => api.get('/catalogo/productos/', { params }).then(datos)
+export function adaptarProducto(producto) {
+  return {
+    ...producto,
+    precio_compra: Number(producto.precio_compra),
+    precio_venta: Number(producto.precio_venta),
+    stock: Number(producto.stock),
+    stock_minimo: Number(producto.stock_minimo),
+  }
+}
+
+export const listarProductos = (params, signal) =>
+  api.get('/catalogo/productos/', { params, signal }).then((respuesta) => respuesta.data.map(adaptarProducto))
 export const obtenerProducto = (id) => api.get(`/catalogo/productos/${id}/`, incluirDesactivados).then(datos)
 export const crearProducto = (producto) => api.post('/catalogo/productos/', producto).then(datos)
 export const actualizarProducto = (id, cambios) =>

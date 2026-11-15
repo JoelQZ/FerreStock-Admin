@@ -1404,3 +1404,17 @@ textarea.entrada {
   font-family: var(--fuente-titulo);
   font-variant-numeric: tabular-nums;
 }
+
+.practica__formulario {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 16px;
+  align-items: end;
+  padding: 20px;
+}
+
+@media (max-width: 860px) {
+  .practica__formulario {
+    grid-template-columns: 1fr;
+  }
+}
