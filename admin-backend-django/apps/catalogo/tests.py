@@ -111,20 +111,51 @@ class CatalogoApiTests(APITestCase):
         self.assertFalse(self.categoria.estado)
         self.assertFalse(self.marca.estado)
 
-    def test_units_are_read_only_and_require_authentication(self):
+    def test_units_can_be_created_and_edited_but_not_deleted(self):
         url = reverse('unidad-medida-list')
 
         self.assertEqual(self.client.get(url).status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            self.client.post(
-                url,
-                {'nombre': 'Metro', 'abreviatura': 'm'},
-                format='json',
-            ).status_code,
-            status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
+        creada = self.client.post(url, {'nombre': 'Metro', 'abreviatura': 'm'}, format='json')
+        self.assertEqual(creada.status_code, status.HTTP_201_CREATED)
+
+        detalle = reverse('unidad-medida-detail', args=(creada.data['id_unidad'],))
+        editada = self.client.patch(detalle, {'abreviatura': 'mt'}, format='json')
+        self.assertEqual(editada.status_code, status.HTTP_200_OK)
+        self.assertEqual(editada.data['abreviatura'], 'mt')
+        self.assertEqual(self.client.delete(detalle).status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+        repetida = self.client.post(url, {'nombre': 'metro', 'abreviatura': 'm'}, format='json')
+        self.assertEqual(repetida.status_code, status.HTTP_400_BAD_REQUEST)
 
         self.client.force_authenticate(user=None)
         self.assertEqual(self.client.get(url).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_brand_names_are_unique_and_inactive_brands_are_hidden(self):
+        url = reverse('marca-list')
+
+        repetida = self.client.post(url, {'nombre': 'marca de prueba'}, format='json')
+        self.assertEqual(repetida.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.client.delete(reverse('marca-detail', args=(self.marca.id_marca,)))
+        self.assertEqual(self.client.get(url).data, [])
+        self.assertEqual(len(self.client.get(url, {'todos': 1}).data), 1)
+
+    def test_cashier_can_read_catalog_but_cannot_modify_it(self):
+        cajero = Usuario.objects.create_user(
+            'catalogo-cajero',
+            password='A-long-password-47!',
+            rol=Rol.objects.create(nombre=Rol.Nombre.CAJERO),
+        )
+        self.client.force_authenticate(cajero)
+
+        self.assertEqual(self.client.get(reverse('categoria-list')).status_code, status.HTTP_200_OK)
+        for nombre_url, datos in (
+            ('categoria-list', {'nombre': 'Jardinería'}),
+            ('marca-list', {'nombre': 'Truper'}),
+            ('unidad-medida-list', {'nombre': 'Litro', 'abreviatura': 'l'}),
+            ('producto-list', self.producto_payload()),
+        ):
+            respuesta = self.client.post(reverse(nombre_url), datos, format='json')
+            self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN, nombre_url)
 
 # Create your tests here.

@@ -1,8 +1,7 @@
 from django.db.models import Q
 from rest_framework import filters, serializers, viewsets
-from rest_framework.permissions import IsAuthenticated
-
 from .models import Categoria, Marca, Producto, UnidadMedida
+from .permissions import SoloAdministradorEscribe
 from .serializers import (
     CategoriaSerializer,
     MarcaSerializer,
@@ -12,11 +11,16 @@ from .serializers import (
 
 
 class EstadoActivoModelViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SoloAdministradorEscribe,)
 
     def perform_destroy(self, instance):
         instance.estado = False
         instance.save(update_fields=('estado',))
+
+    def filtrar_activos(self, queryset):
+        if self.request.query_params.get('todos') != '1':
+            queryset = queryset.filter(estado=True)
+        return queryset
 
 
 class CategoriaViewSet(EstadoActivoModelViewSet):
@@ -26,21 +30,24 @@ class CategoriaViewSet(EstadoActivoModelViewSet):
     search_fields = ('nombre', 'descripcion')
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.query_params.get('todos') != '1':
-            queryset = queryset.filter(estado=True)
-        return queryset
+        return self.filtrar_activos(super().get_queryset())
 
 
 class MarcaViewSet(EstadoActivoModelViewSet):
     queryset = Marca.objects.all()
     serializer_class = MarcaSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('nombre',)
+
+    def get_queryset(self):
+        return self.filtrar_activos(super().get_queryset())
 
 
-class UnidadMedidaViewSet(viewsets.ReadOnlyModelViewSet):
+class UnidadMedidaViewSet(viewsets.ModelViewSet):
     queryset = UnidadMedida.objects.all()
     serializer_class = UnidadMedidaSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SoloAdministradorEscribe,)
+    http_method_names = ('get', 'post', 'put', 'patch', 'head', 'options')
 
 
 class ProductoViewSet(EstadoActivoModelViewSet):
@@ -48,9 +55,7 @@ class ProductoViewSet(EstadoActivoModelViewSet):
     serializer_class = ProductoSerializer
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.request.query_params.get('todos') != '1':
-            queryset = queryset.filter(estado=True)
+        queryset = self.filtrar_activos(super().get_queryset())
 
         categoria = self.request.query_params.get('categoria')
         if categoria is not None:

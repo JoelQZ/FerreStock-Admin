@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthProvider'
 import LayoutAdmin from './layouts/LayoutAdmin'
+import Catalogos from './pages/Catalogos'
 import EnConstruccion from './pages/EnConstruccion'
 import Login from './pages/Login'
 import ProductoForm from './pages/ProductoForm'
@@ -28,6 +29,7 @@ function App() {
               <Route path="productos" element={<Productos />} />
               <Route path="productos/nuevo" element={<ProductoForm key="nuevo" />} />
               <Route path="productos/:id/editar" element={<ProductoForm key="editar" />} />
+              <Route path="catalogos" element={<Catalogos />} />
               <Route path="reportes" element={<Reportes />} />
               {SECCIONES_PENDIENTES.map((seccion) => (
                 <Route key={seccion.ruta} path={seccion.ruta} element={<EnConstruccion {...seccion} />} />

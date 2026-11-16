@@ -27,13 +27,43 @@ class MarcaSerializer(serializers.ModelSerializer):
         model = Marca
         fields = ('id_marca', 'nombre', 'estado')
         read_only_fields = ('id_marca',)
+        extra_kwargs = {'nombre': {'validators': []}}
+
+    def validate_nombre(self, value):
+        value = value.strip()
+        if len(value) < 2:
+            raise serializers.ValidationError('El nombre debe tener al menos 2 caracteres.')
+        repetidos = Marca.objects.filter(nombre__iexact=value)
+        if self.instance:
+            repetidos = repetidos.exclude(pk=self.instance.pk)
+        if repetidos.exists():
+            raise serializers.ValidationError('Ya existe una marca con este nombre.')
+        return value
 
 
 class UnidadMedidaSerializer(serializers.ModelSerializer):
     class Meta:
         model = UnidadMedida
         fields = ('id_unidad', 'nombre', 'abreviatura')
-        read_only_fields = fields
+        read_only_fields = ('id_unidad',)
+        extra_kwargs = {'nombre': {'validators': []}}
+
+    def validate_nombre(self, value):
+        value = value.strip()
+        if len(value) < 2:
+            raise serializers.ValidationError('El nombre debe tener al menos 2 caracteres.')
+        repetidos = UnidadMedida.objects.filter(nombre__iexact=value)
+        if self.instance:
+            repetidos = repetidos.exclude(pk=self.instance.pk)
+        if repetidos.exists():
+            raise serializers.ValidationError('Ya existe una unidad con este nombre.')
+        return value
+
+    def validate_abreviatura(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('La abreviatura es obligatoria.')
+        return value
 
 
 class ProductoSerializer(serializers.ModelSerializer):

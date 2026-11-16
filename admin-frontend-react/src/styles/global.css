@@ -1305,6 +1305,46 @@ textarea.entrada {
   }
 }
 
+.pestanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pestanas__boton {
+  padding: 7px 16px;
+  border: 1px solid var(--acero);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pestanas__boton:hover {
+  background: var(--tarjeta);
+}
+
+.pestanas__boton--activa,
+.pestanas__boton--activa:hover {
+  border-color: var(--madera);
+  background: var(--madera);
+  color: var(--carbon);
+}
+
+.formulario__seccion--una {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.catalogo__aviso {
+  padding: 16px 20px 0;
+}
+
+.tabla tr.seleccionada td {
+  background: var(--bajo-fondo);
+}
+
 /* Práctica del Laboratorio 11 */
 
 .practica {

@@ -24,3 +24,10 @@ export const desactivarProducto = (id) => api.delete(`/catalogo/productos/${id}/
 export const listarCategorias = () => api.get('/catalogo/categorias/').then(datos)
 export const listarMarcas = () => api.get('/catalogo/marcas/').then(datos)
 export const listarUnidades = () => api.get('/catalogo/unidades/').then(datos)
+
+export const listarCatalogo = (recurso, params, signal) =>
+  api.get(`/catalogo/${recurso}/`, { params, signal }).then(datos)
+export const crearEnCatalogo = (recurso, valores) => api.post(`/catalogo/${recurso}/`, valores).then(datos)
+export const actualizarEnCatalogo = (recurso, id, cambios) =>
+  api.patch(`/catalogo/${recurso}/${id}/`, cambios, incluirDesactivados).then(datos)
+export const desactivarEnCatalogo = (recurso, id) => api.delete(`/catalogo/${recurso}/${id}/`)
