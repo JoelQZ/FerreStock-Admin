@@ -12,7 +12,7 @@ from .serializers import NegocioSerializer
 def puede_administrar_negocio(user):
     return user.is_superuser or (
         user.rol_id is not None
-        and user.rol.nombre in (Rol.Nombre.ADMINISTRADOR, Rol.Nombre.DUENO)
+        and user.rol.nombre == Rol.Nombre.ADMINISTRADOR
     )
 
 
@@ -40,7 +40,7 @@ class NegocioView(APIView):
     def check_write_permission(request):
         if not puede_administrar_negocio(request.user):
             raise PermissionDenied(
-                'Se requiere el rol Administrador o Dueño para actualizar el negocio.'
+                'Se requiere el rol Administrador para actualizar el negocio.'
             )
 
     def _save(self, request, *, partial):

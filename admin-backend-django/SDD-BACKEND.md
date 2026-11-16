@@ -32,7 +32,7 @@ admin-backend-django/apps/
 
 | App Django | Tabla | Descripción Técnica |
 | :--- | :--- | :--- |
-| **`usuarios`** | `rol` | Roles del sistema (`ADMINISTRADOR`, `CAJERO`, `DUENO`). |
+| **`usuarios`** | `rol` | Roles del sistema (`ADMINISTRADOR`, `CAJERO`). |
 | | `usuario` | Usuario personalizado (`AbstractBaseUser`), clave hasheada. |
 | **`catalogo`** | `categoria` | Clasificación de productos. |
 | | `marca` | Marcas registradas de insumos/herramientas. |
@@ -139,7 +139,7 @@ admin-backend-django/apps/
 * **`GET /api/reportes/ventas/?desde=YYYY-MM-DD&hasta=YYYY-MM-DD`**: resumen de ventas completadas y agregados diarios de subtotal, IGV y total.
 * **`GET /api/reportes/productos-mas-vendidos/?desde=YYYY-MM-DD&hasta=YYYY-MM-DD&limite=10`**: cantidades y montos por producto (límite máximo 100).
 * **`GET /api/reportes/movimientos-caja/?desde=YYYY-MM-DD&hasta=YYYY-MM-DD`**: totales de ingresos/egresos y desglose diario por tipo.
-* Las fechas son opcionales; cuando se omiten, el reporte consulta todo el histórico. El acceso se restringe a los roles Administrador y Dueño.
+* Las fechas son opcionales; cuando se omiten, el reporte consulta todo el histórico. El acceso se restringe al rol Administrador.
 
 ---
 

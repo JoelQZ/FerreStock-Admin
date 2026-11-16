@@ -32,7 +32,7 @@ admin-backend-django/apps/
 
 | App Django | Tabla | Descripción Técnica |
 | :--- | :--- | :--- |
-| **`usuarios`** | `rol` | Roles del sistema (`ADMINISTRADOR`, `CAJERO`, `DUENO`). |
+| **`usuarios`** | `rol` | Roles del sistema (`ADMINISTRADOR`, `CAJERO`). |
 | | `usuario` | Usuario personalizado (`AbstractBaseUser`), clave hasheada. |
 | **`catalogo`** | `categoria` | Clasificación de productos. |
 | | `marca` | Marcas registradas de insumos/herramientas. |

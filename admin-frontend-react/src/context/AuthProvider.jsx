@@ -23,7 +23,7 @@ const entrar = useCallback(async (usuario, password) => {
     const rolFormateado = rolRaw?.toUpperCase()
 
     if (!ROLES_PANEL.includes(rolFormateado)) {
-      const error = new Error('El cajero trabaja desde el POS. Este panel es solo para el administrador y el dueño.')
+      const error = new Error('El cajero trabaja desde el POS. Este panel es solo para el administrador.')
       error.codigo = 'ROL'
       throw error
     }

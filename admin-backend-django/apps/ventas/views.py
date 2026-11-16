@@ -25,7 +25,7 @@ from .serializers import (
 def usuario_puede_ver_todas_las_ventas(user):
     return user.is_superuser or (
         user.rol_id is not None
-        and user.rol.nombre in (Rol.Nombre.ADMINISTRADOR, Rol.Nombre.DUENO)
+        and user.rol.nombre == Rol.Nombre.ADMINISTRADOR
     )
 
 

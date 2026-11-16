@@ -8,7 +8,6 @@ class Rol(models.Model):
     class Nombre(models.TextChoices):
         ADMINISTRADOR = 'ADMINISTRADOR', 'Administrador'
         CAJERO = 'CAJERO', 'Cajero'
-        DUENO = 'DUENO', 'Dueño'
 
     nombre = models.CharField(max_length=20, choices=Nombre.choices, unique=True)
     descripcion = models.CharField(max_length=255, blank=True)
@@ -41,7 +40,7 @@ class UsuarioManager(BaseUserManager):
 
         rol = extra_fields.get('rol')
         if rol is None:
-            extra_fields['rol'] = Rol.objects.get(nombre=Rol.Nombre.DUENO)
+            extra_fields['rol'] = Rol.objects.get(nombre=Rol.Nombre.ADMINISTRADOR)
         elif not isinstance(rol, Rol):
             extra_fields['rol'] = Rol.objects.get(pk=rol)
 

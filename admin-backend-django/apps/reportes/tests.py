@@ -15,11 +15,11 @@ from apps.ventas.models import DetalleVenta, MetodoPago, Pago, TipoComprobante, 
 class ReportesApiTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
-        rol_dueno = Rol.objects.create(nombre=Rol.Nombre.DUENO)
-        cls.dueno = Usuario.objects.create_user(
-            'dueno-reportes',
+        rol_admin = Rol.objects.create(nombre=Rol.Nombre.ADMINISTRADOR)
+        cls.administrador = Usuario.objects.create_user(
+            'admin-reportes',
             password='A-long-password-47!',
-            rol=rol_dueno,
+            rol=rol_admin,
         )
         rol_cajero = Rol.objects.create(nombre=Rol.Nombre.CAJERO)
         cls.cajero = Usuario.objects.create_user(
@@ -94,7 +94,7 @@ class ReportesApiTests(APITestCase):
         )
 
     def setUp(self):
-        self.client.force_authenticate(self.dueno)
+        self.client.force_authenticate(self.administrador)
 
     def test_sales_report_aggregates_period_and_excludes_cancelled_sales(self):
         response = self.client.get(
@@ -184,7 +184,7 @@ class ReportesApiTests(APITestCase):
         self.assertEqual(response.data['resumen']['egresos'], '0.00')
         self.assertEqual(response.data['movimientos'][0]['tipo'], 'INGRESO')
 
-    def test_reports_validate_dates_and_restrict_access_to_admin_or_owner(self):
+    def test_reports_validate_dates_and_restrict_access_to_admin(self):
         bad_period = self.client.get(
             reverse('reporte-ventas'),
             {'desde': '2026-10-14', 'hasta': '2026-10-13'},
@@ -199,12 +199,12 @@ class ReportesApiTests(APITestCase):
 class ReportePrecisionTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
-        rol_dueno = Rol.objects.create(nombre=Rol.Nombre.DUENO)
+        rol_admin = Rol.objects.create(nombre=Rol.Nombre.ADMINISTRADOR)
         rol_cajero = Rol.objects.create(nombre=Rol.Nombre.CAJERO)
-        cls.dueno = Usuario.objects.create_user(
-            'dueno-precision',
+        cls.administrador = Usuario.objects.create_user(
+            'admin-precision',
             password='A-long-password-47!',
-            rol=rol_dueno,
+            rol=rol_admin,
         )
         cls.cajero = Usuario.objects.create_user(
             'cajero-precision',
@@ -290,7 +290,7 @@ class ReportePrecisionTests(APITestCase):
         )
 
     def setUp(self):
-        self.client.force_authenticate(self.dueno)
+        self.client.force_authenticate(self.administrador)
 
     def pedir_reporte(self, **extra):
         params = {'desde': '2026-10-14', 'hasta': '2026-10-14'}

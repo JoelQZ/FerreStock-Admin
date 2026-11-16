@@ -30,7 +30,7 @@ Cursos que integra: Construcción y Pruebas de Software · Desarrollo de Aplicac
 | Componente | Tecnología | Usuarios | Curso |
 |---|---|---|---|
 | `admin-backend-django` | Django 6.1 + Django REST Framework | — | Desarrollo de Aplicaciones Web |
-| `admin-frontend-react` | React 19 + Vite | Administrador y dueño | Desarrollo de Aplicaciones Web |
+| `admin-frontend-react` | React 19 + Vite | Administrador | Desarrollo de Aplicaciones Web |
 | `pos-backend-springboot` | Spring Boot 4.1 + Java 21 | — | Desarrollo de Aplicaciones Empresariales |
 | `pos-frontend-react` | React 19 + Vite | Cajero | Desarrollo de Aplicaciones Empresariales |
 | `app-movil-kotlin` | Kotlin + Jetpack Compose | Vendedor en tienda | Programación en Móviles |
@@ -102,7 +102,7 @@ Las subcarpetas internas de cada proyecto (`api/`, `pages/`, `entity/`, `service
 
 | Módulo | Tabla | Qué guarda | App Django |
 |---|---|---|---|
-| **Usuarios y seguridad** | `rol` | Roles: ADMINISTRADOR, CAJERO, DUEÑO | `usuarios` |
+| **Usuarios y seguridad** | `rol` | Roles: ADMINISTRADOR y CAJERO | `usuarios` |
 | | `usuario` | Usuarios del sistema, contraseña con hash | `usuarios` |
 | **Catálogo** | `categoria` | Categorías de productos | `catalogo` |
 | | `marca` | Marcas | `catalogo` |

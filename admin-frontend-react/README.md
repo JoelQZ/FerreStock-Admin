@@ -1,6 +1,6 @@
 # FerreStock · Panel de administración (React)
 
-Panel web del **administrador y del dueño** de la ferretería: catálogo de productos, reportes de ventas y, en las próximas semanas, inventario, usuarios, configuración y predicción de reposición.
+Panel web del **administrador** de la ferretería: catálogo de productos, reportes de ventas y, en las próximas semanas, inventario, usuarios, configuración y predicción de reposición.
 Consume la API REST de Django (`admin-backend-django`) con Axios y JWT.
 
 Curso: Desarrollo de Aplicaciones Empresariales · Tecsup 2026-2.
