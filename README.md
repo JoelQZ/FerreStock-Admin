@@ -250,6 +250,12 @@ Todas requieren el token JWT (`Authorization: Bearer <token>`).
 | GET | `/api/catalogo/categorias/` · `/marcas/` · `/unidades/` | Combos del formulario y filtro |
 | GET · POST · PATCH · DELETE | `/api/catalogo/categorias/?search=` | Práctica del Laboratorio 12 (`/practica`) |
 | GET | `/api/reportes/ventas/` · `/api/ventas/ventas/` · `/api/caja/turnos/` | Pantalla de reportes |
+| GET · POST | `/api/inventario/ingresos/` | Historial y registro de ingresos de mercadería |
+| GET · POST · PATCH · DELETE | `/api/inventario/proveedores/` | Proveedores |
+| GET | `/api/inventario/kardex/` | Kárdex |
+| GET · POST · PATCH · DELETE | `/api/usuarios/` · GET `/api/roles/` | Usuarios del personal |
+| GET · PUT · PATCH | `/api/configuracion/negocio/` | Datos del negocio |
+| GET | `/api/ia/predicciones/?dias_maximos=` | Predicción de reposición |
 
 **Spring Boot** (puerto 8080): abrir `pos-backend-springboot` en IntelliJ y ejecutar `PosBackendSpringbootApplication`. Necesita MySQL configurado.
 
@@ -276,3 +282,109 @@ Todas requieren el token JWT (`Authorization: Bearer <token>`).
 - **Un commit por día**, con el código de la historia de usuario en el mensaje:
   `HU-05: calcula IGV en el carrito`.
 - Una tarea está terminada solo si cumple la **Definition of Done**: código revisado, transacciones seguras, interfaz funcional, 100 % de los criterios de aceptación, probada en local y aprobada por el Product Owner.
+
+---
+
+## 9. Diseño de la aplicación
+
+### 9.1 Tipo de comercio y canales
+
+FerreStock es un comercio **B2C**: la ferretería vende al público (maestros de obra y vecinos) con boleta. También atiende ventas **B2B** cuando una empresa pide factura con RUC. La venta es presencial en la tienda y los canales son aplicaciones que usan la misma base de datos:
+
+| Canal | Quién lo usa | API |
+|---|---|---|
+| Panel web (`admin-frontend-react`) | Administrador | Django |
+| Punto de venta web (`pos-frontend-react`) | Cajero | Spring Boot |
+| App móvil (`app-movil-kotlin`) | Administrador | Django |
+
+### 9.2 Módulos
+
+| Módulo | Qué hace | Estado |
+|---|---|---|
+| Catálogo | Productos, categorías, marcas y unidades | ✅ Hecho |
+| Inventario | Proveedores, ingresos de mercadería tipo carrito y kárdex | ✅ Hecho |
+| Usuarios y roles | Cuentas del personal (administrador y cajero) | ✅ Hecho · menú por rol en Semana 15 |
+| Ventas | Carrito, IGV y comprobante | En el POS |
+| Pagos | Efectivo, Yape y Plin | En el POS (Semana 16) |
+| Caja | Apertura y cierre de turno | En el POS |
+| Reportes | Ventas por periodo y por tipo de pago | ✅ Hecho |
+| Predicción IA | Sugerencia de reposición | ✅ Pantalla hecha · falta el cálculo automático |
+| Configuración | Datos del negocio, IGV y vista del comprobante | ✅ Hecho |
+| Seguridad | Login JWT y permisos por rol | ✅ Login · 403 y 404 en Semana 15 |
+
+### 9.3 Roles
+
+El sistema tiene solo dos roles. Quien no inició sesión solo ve la pantalla de login.
+
+| Rol | Qué puede hacer | Pantalla |
+|---|---|---|
+| Cajero (vendedor) | Vender, cobrar y cerrar caja. No entra al panel | POS |
+| Administrador | Todo el panel: productos, catálogos, inventario, reportes, usuarios y configuración | Panel admin |
+
+### 9.4 Requisitos
+
+| ID | Descripción | Prioridad | Criterio de aceptación |
+|---|---|---|---|
+| RF01 | Registrar, editar y desactivar productos | Alta | Con código repetido o precio de venta 0 la API responde 400 |
+| RF02 | Buscar productos por código o nombre y filtrar por categoría | Alta | `?buscar=` y `?categoria=` devuelven solo los que coinciden |
+| RF03 | Registrar un ingreso de mercadería con varios productos | Alta | El stock de cada producto sube y se crea un movimiento ENTRADA en el kárdex |
+| RF04 | Ver las ventas por periodo con el total por Efectivo, Yape y Plin | Media | La suma por método de pago es igual al total vendido |
+| RF05 | Gestionar las cuentas del personal | Media | Un usuario que no es administrador recibe 403 |
+| RNF01 | Seguridad | Alta | Toda petición sin token JWT válido responde 401 |
+| RNF02 | Rendimiento | Media | El listado de productos responde en menos de 2 segundos en la red local |
+| RNF03 | Usabilidad | Media | Cada pantalla muestra "Cargando…", un error o "lista vacía"; nunca queda en blanco |
+
+### 9.5 Reglas de negocio
+
+| Regla | Dónde se aplica | Qué error evita |
+|---|---|---|
+| El código del producto es único | Django (`validate_codigo`) | Dos productos con el mismo código |
+| El precio de venta es mayor que 0 | React (formulario) y Django (`validate_precio_venta`) | Vender gratis por error |
+| El precio de la venta se lee de la base de datos | Django (`VentaCreateSerializer`) | Que el navegador mande un precio cambiado |
+| No se vende más de lo que hay en stock | Django (`select_for_update` en la transacción) | Stock negativo con dos ventas a la vez |
+| El dinero se guarda como `Decimal` | Django (`DecimalField`) | Errores de redondeo de `float` |
+| El ingreso tiene cantidad mayor que 0 y costo no negativo | Django (`DetalleIngresoInputSerializer`) | Ingresos vacíos o con costo negativo |
+| Solo el administrador modifica el catálogo | React (`ROLES_PANEL`) y Django (`permissions.py`) | Que un cajero cambie precios |
+
+### 9.6 Flujo principal del panel: ingreso de mercadería
+
+```
+Administrador
+ → React: pantalla Inventario (pages)
+ → Axios: api/inventario.js → POST /api/inventario/ingresos/ con el token JWT
+ → Django: config/urls.py → apps/inventario/urls.py → IngresoListCreateView
+ → IngresoSerializer: valida proveedor, productos, cantidades y costos
+ → transacción: guarda Ingreso y DetalleIngreso, suma el stock y registra el kárdex (MovimientoInventario)
+ → MySQL
+ → Response 201 con el ingreso en JSON (o 400 con los errores)
+ → React vuelve a dibujar la lista
+```
+
+Entidades: **Ingreso** (principal), **DetalleIngreso** (detalle), Proveedor, Producto y MovimientoInventario.
+
+### 9.7 Estructura del panel
+
+```
+admin-backend-django/
+├── config/          ← settings.py y urls.py del proyecto
+└── apps/            ← usuarios, catalogo, inventario, ventas, caja, configuracion, ia, reportes
+
+admin-frontend-react/src/
+├── api/             ← cliente.js (instancia de Axios) y un archivo por módulo
+├── components/      ← piezas reutilizables (tablas, filas, formularios, KPIs)
+├── pages/           ← una pantalla por ruta
+├── layouts/  routes/  context/  utils/  styles/
+```
+
+### 9.8 Mapa de rutas
+
+| Recurso | Ruta de la API (Django) | Ruta de React |
+|---|---|---|
+| Login | `/api/auth/login/` | `/login` |
+| Productos | `/api/catalogo/productos/` | `/productos` · `/productos/nuevo` · `/productos/:id/editar` |
+| Categorías, marcas y unidades | `/api/catalogo/categorias/` · `/marcas/` · `/unidades/` | `/catalogos` |
+| Ingresos, proveedores y kárdex | `/api/inventario/ingresos/` · `/proveedores/` · `/kardex/` | `/inventario?vista=ingresos` · `proveedores` · `kardex` |
+| Reportes | `/api/reportes/ventas/` | `/reportes` |
+| Predicción IA | `/api/ia/predicciones/` | `/prediccion` |
+| Usuarios y roles | `/api/usuarios/` · `/api/roles/` | `/usuarios` |
+| Configuración | `/api/configuracion/negocio/` | `/configuracion` |

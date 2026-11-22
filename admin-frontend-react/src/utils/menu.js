@@ -7,30 +7,3 @@ export const MENU = [
   { ruta: '/usuarios', texto: 'Usuarios', icono: 'usuarios' },
   { ruta: '/configuracion', texto: 'Configuración', icono: 'ajustes' },
 ]
-
-export const SECCIONES_PENDIENTES = [
-  {
-    ruta: 'inventario',
-    kicker: 'Inventario',
-    titulo: 'Inventario',
-    descripcion: 'Ingresos de mercadería, proveedores y movimientos de stock.',
-  },
-  {
-    ruta: 'prediccion',
-    kicker: 'Predicción IA',
-    titulo: 'Predicción de reposición',
-    descripcion: 'Sugerencias de compra según el historial de ventas.',
-  },
-  {
-    ruta: 'usuarios',
-    kicker: 'Usuarios',
-    titulo: 'Usuarios',
-    descripcion: 'Cuentas del personal y sus roles.',
-  },
-  {
-    ruta: 'configuracion',
-    kicker: 'Configuración',
-    titulo: 'Configuración',
-    descripcion: 'Datos de la ferretería, IGV y comprobantes.',
-  },
-]

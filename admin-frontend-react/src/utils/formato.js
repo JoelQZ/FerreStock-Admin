@@ -19,3 +19,13 @@ export function iniciales(nombre = '') {
   const partes = nombre.trim().split(/\s+/).filter(Boolean)
   return partes.slice(0, 2).map((parte) => parte[0].toUpperCase()).join('') || '?'
 }
+
+const fechaHora = new Intl.DateTimeFormat('es-PE', {
+  dateStyle: 'short',
+  timeStyle: 'short',
+  timeZone: 'America/Lima',
+})
+
+export function formatearFechaHora(valor) {
+  return valor ? fechaHora.format(new Date(valor)) : '—'
+}
