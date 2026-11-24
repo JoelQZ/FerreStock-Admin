@@ -10,4 +10,4 @@ export const desactivarProveedor = (id) => api.delete(`/inventario/proveedores/$
 export const listarIngresos = (signal) => api.get('/inventario/ingresos/', { signal }).then(datos)
 export const registrarIngreso = (ingreso) => api.post('/inventario/ingresos/', ingreso).then(datos)
 
-export const listarKardex = (signal) => api.get('/inventario/kardex/', { signal }).then(datos)
+export const listarKardex = (signal, params) => api.get('/inventario/kardex/', { params, signal }).then(datos)

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { formatearSoles, tieneStockBajo } from '../utils/formato'
 import EtiquetaStock from './EtiquetaStock'
 import Icono from './Icono'
@@ -9,7 +10,9 @@ export default function ProductoFila({ producto, onEditar, onCambiarEstado }) {
         <span className="codigo">{producto.codigo}</span>
       </td>
       <td>
-        <strong className="tabla__nombre">{producto.nombre}</strong>
+        <Link to={`/productos/${producto.id_producto}`} className="tabla__nombre tabla__enlace">
+          {producto.nombre}
+        </Link>
         <small className="tabla__detalle">
           {producto.marca_nombre} · {producto.unidad_nombre}
         </small>

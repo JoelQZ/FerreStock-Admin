@@ -1,4 +1,5 @@
 from rest_framework import generics, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 
 from .models import Ingreso, MovimientoInventario, Proveedor
@@ -36,3 +37,12 @@ class KardexListView(generics.ListAPIView):
     )
     serializer_class = MovimientoInventarioSerializer
     permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        producto = self.request.query_params.get('producto')
+        if producto:
+            if not producto.isdigit():
+                raise ValidationError({'producto': 'Debe ser un identificador válido.'})
+            queryset = queryset.filter(producto_id=int(producto))
+        return queryset

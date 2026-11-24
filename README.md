@@ -252,7 +252,7 @@ Todas requieren el token JWT (`Authorization: Bearer <token>`).
 | GET | `/api/reportes/ventas/` · `/api/ventas/ventas/` · `/api/caja/turnos/` | Pantalla de reportes |
 | GET · POST | `/api/inventario/ingresos/` | Historial y registro de ingresos de mercadería |
 | GET · POST · PATCH · DELETE | `/api/inventario/proveedores/` | Proveedores |
-| GET | `/api/inventario/kardex/` | Kárdex |
+| GET | `/api/inventario/kardex/?producto=` | Kárdex (todo o de un producto) |
 | GET · POST · PATCH · DELETE | `/api/usuarios/` · GET `/api/roles/` | Usuarios del personal |
 | GET · PUT · PATCH | `/api/configuracion/negocio/` | Datos del negocio |
 | GET | `/api/ia/predicciones/?dias_maximos=` | Predicción de reposición |
@@ -381,10 +381,74 @@ admin-frontend-react/src/
 | Recurso | Ruta de la API (Django) | Ruta de React |
 |---|---|---|
 | Login | `/api/auth/login/` | `/login` |
-| Productos | `/api/catalogo/productos/` | `/productos` · `/productos/nuevo` · `/productos/:id/editar` |
+| Productos | `/api/catalogo/productos/` · `?search=` | `/productos` · `/productos/:id` (detalle) · `/productos/nuevo` · `/productos/:id/editar` |
 | Categorías, marcas y unidades | `/api/catalogo/categorias/` · `/marcas/` · `/unidades/` | `/catalogos` |
 | Ingresos, proveedores y kárdex | `/api/inventario/ingresos/` · `/proveedores/` · `/kardex/` | `/inventario?vista=ingresos` · `proveedores` · `kardex` |
 | Reportes | `/api/reportes/ventas/` | `/reportes` |
 | Predicción IA | `/api/ia/predicciones/` | `/prediccion` |
 | Usuarios y roles | `/api/usuarios/` · `/api/roles/` | `/usuarios` |
 | Configuración | `/api/configuracion/negocio/` | `/configuracion` |
+
+---
+
+## 10. Componentes de la aplicación
+
+| Componente | Tecnología | En FerreStock |
+|---|---|---|
+| Base de datos | MySQL 8 + modelos de Django (ORM) y migraciones | `apps/*/models.py` y `apps/*/migrations/` |
+| Rutas | `DefaultRouter` de DRF y `urls.py` | `config/urls.py` → `apps/*/urls.py` (`/api/catalogo/productos/`) |
+| Controladores | ViewSets y vistas genéricas de DRF | `ProductoViewSet`, `IngresoListCreateView`, `VentaListCreateView` |
+| Validación | Serializers de DRF | `ProductoSerializer` (`validate_codigo`, `validate_precio_venta`…) |
+| Vistas | Pantallas de React | `src/pages/Productos.jsx`, `ProductoDetalle.jsx`, `Inventario.jsx` |
+| Módulo de pago | POS (Spring Boot) y modelo `Pago` | Efectivo, Yape y Plin; pasarela con tarjeta en la Semana 16 |
+
+**Reglas de la operación principal (venta e ingreso de mercadería), aplicadas en el servidor:**
+- El precio se toma de la base de datos (`producto.precio_venta`), nunca del navegador.
+- Todo ocurre dentro de `@transaction.atomic`: si algo falla, no se guarda nada.
+- Los productos se bloquean con `select_for_update()` y el stock se descuenta con `F('stock') - cantidad`.
+- Si el stock no alcanza, la API responde 400 y el stock no cambia.
+- El subtotal, el IGV y el total los calcula Django, no React.
+
+**Cómo ejecutar Django y React:**
+
+```bash
+cd admin-backend-django
+venv\Scripts\activate
+python manage.py runserver      # http://127.0.0.1:8000/api/
+
+cd admin-frontend-react
+npm run dev                     # http://localhost:5173/
+```
+
+## 11. Módulo de pago
+
+FerreStock vende en mostrador: el cliente paga en caja y el cajero registra el cobro en el POS.
+
+**Cuándo se invoca:** al confirmar la venta en el POS, después de armar el carrito. El cajero elige Efectivo, Yape, Plin o (desde la Semana 16) tarjeta.
+
+**Flujo con pasarela (tarjeta, Semana 16):**
+
+```
+Cajero confirma el carrito
+ → Backend crea la venta en estado PENDIENTE y calcula el total
+ → Backend pide un cobro a la pasarela (Culqi / Niubiz / Mercado Pago) con monto, moneda (PEN) y n.º de venta
+ → El cliente paga en el POS o en el link de la pasarela (la tarjeta la escribe en la pasarela)
+ → La pasarela responde con la confirmación (id de transacción y estado)
+ → Backend registra el Pago y pasa la venta a PAGADO; descuenta stock y emite la boleta o factura
+```
+
+**Estados del pedido o venta:**
+
+| Estado | Cuándo |
+|---|---|
+| PENDIENTE | Venta creada, esperando la confirmación del pago |
+| PAGADO | La pasarela o el cajero confirmó el cobro (hoy se registra como `COMPLETADA`) |
+| ENTREGADO | El cliente se llevó la mercadería o se despachó a obra |
+| CANCELADO | El pago falló o la venta se anuló (hoy `ANULADA`, que devuelve el stock) |
+
+**Qué se envía a la pasarela:** monto, moneda, número de venta, correo o celular del cliente si lo da.
+
+**Qué se guarda en la base de datos (tabla `pago`):** método, monto, monto recibido, vuelto y código de operación (Yape/Plin) o id de transacción de la pasarela.
+
+**Qué NUNCA se guarda:** número completo de la tarjeta, fecha de vencimiento, CVV ni el PIN o clave de Yape/Plin. Esos datos solo los maneja la pasarela (norma PCI DSS).
+

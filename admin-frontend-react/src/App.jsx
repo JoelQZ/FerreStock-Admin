@@ -6,6 +6,7 @@ import Configuracion from './pages/Configuracion'
 import Inventario from './pages/Inventario'
 import Login from './pages/Login'
 import Prediccion from './pages/Prediccion'
+import ProductoDetalle from './pages/ProductoDetalle'
 import ProductoForm from './pages/ProductoForm'
 import Productos from './pages/Productos'
 import Reportes from './pages/Reportes'
@@ -30,6 +31,7 @@ function App() {
               <Route index element={<Navigate to="/productos" replace />} />
               <Route path="productos" element={<Productos />} />
               <Route path="productos/nuevo" element={<ProductoForm key="nuevo" />} />
+              <Route path="productos/:id" element={<ProductoDetalle />} />
               <Route path="productos/:id/editar" element={<ProductoForm key="editar" />} />
               <Route path="catalogos" element={<Catalogos />} />
               <Route path="reportes" element={<Reportes />} />

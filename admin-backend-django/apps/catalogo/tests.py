@@ -159,3 +159,16 @@ class CatalogoApiTests(APITestCase):
             self.assertEqual(respuesta.status_code, status.HTTP_403_FORBIDDEN, nombre_url)
 
 # Create your tests here.
+
+    def test_product_search_filter_uses_search_param(self):
+        self.client.post(reverse('producto-list'), self.producto_payload(), format='json')
+        self.client.post(
+            reverse('producto-list'),
+            self.producto_payload(codigo='MAR-001', nombre='Martillo'),
+            format='json',
+        )
+
+        response = self.client.get(reverse('producto-list'), {'search': 'martillo'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([item['codigo'] for item in response.data], ['MAR-001'])

@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, mixins, status, viewsets
@@ -121,8 +122,8 @@ class AnularVentaView(generics.GenericAPIView):
                 raise ValidationError(
                     {'venta': f'La devolución excede el stock máximo de {producto.codigo}.'}
                 )
+            Producto.objects.filter(pk=producto.pk).update(stock=F('stock') + detalle.cantidad)
             producto.stock = stock_nuevo
-            producto.save(update_fields=('stock',))
             MovimientoInventario.objects.create(
                 producto=producto,
                 usuario=request.user,

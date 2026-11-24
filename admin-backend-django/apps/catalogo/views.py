@@ -53,6 +53,8 @@ class UnidadMedidaViewSet(viewsets.ModelViewSet):
 class ProductoViewSet(EstadoActivoModelViewSet):
     queryset = Producto.objects.select_related('categoria', 'marca', 'unidad').all()
     serializer_class = ProductoSerializer
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('codigo', 'nombre', 'descripcion')
 
     def get_queryset(self):
         queryset = self.filtrar_activos(super().get_queryset())

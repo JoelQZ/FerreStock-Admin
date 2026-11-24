@@ -158,3 +158,35 @@ class InventarioApiTests(APITestCase):
         )
 
 # Create your tests here.
+
+    def test_kardex_filters_by_product(self):
+        otro = Producto.objects.create(
+            codigo='TUB-001',
+            nombre='Tubo',
+            precio_compra='5.00',
+            precio_venta='8.00',
+            categoria=self.categoria,
+            marca=self.marca,
+            unidad=self.unidad,
+        )
+        for producto in (self.producto, otro):
+            self.client.post(
+                reverse('ingreso-list'),
+                {
+                    'proveedor': self.proveedor.id_proveedor,
+                    'nro_documento': f'GUIA-{producto.codigo}',
+                    'detalles': [
+                        {'producto': producto.id_producto, 'cantidad': '1.000', 'costo_unitario': '1.00'},
+                    ],
+                },
+                format='json',
+            )
+
+        response = self.client.get(reverse('kardex-list'), {'producto': otro.id_producto})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([item['producto'] for item in response.data], [otro.id_producto])
+        self.assertEqual(
+            self.client.get(reverse('kardex-list'), {'producto': 'abc'}).status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )

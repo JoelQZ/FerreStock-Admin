@@ -1,6 +1,7 @@
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -314,8 +315,8 @@ class VentaCreateSerializer(serializers.Serializer):
                 precio_unitario=precio_unitario,
                 subtotal=linea_subtotal,
             )
+            Producto.objects.filter(pk=producto.pk).update(stock=F('stock') - cantidad)
             producto.stock = stock_nuevo
-            producto.save(update_fields=('stock',))
             MovimientoInventario.objects.create(
                 producto=producto,
                 usuario=request.user,

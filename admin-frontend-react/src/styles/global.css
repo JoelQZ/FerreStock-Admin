@@ -1440,6 +1440,26 @@ textarea.entrada {
   }
 }
 
+a.tabla__enlace {
+  color: var(--texto);
+  text-decoration: none;
+}
+
+a.tabla__enlace:hover {
+  color: var(--madera-oscura);
+  text-decoration: underline;
+}
+
+.detalle__filas {
+  padding: 16px 20px;
+}
+
+.detalle__descripcion {
+  margin: 0;
+  padding: 0 20px 20px;
+  color: var(--texto-suave);
+}
+
 /* Práctica del Laboratorio 11 */
 
 .practica {
