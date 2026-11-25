@@ -5,7 +5,7 @@ from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, mixins, status, viewsets
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -54,20 +54,32 @@ class MetodoPagoViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAuthenticated,)
 
 
+def ventas_visibles(user):
+    queryset = Venta.objects.select_related(
+        'usuario',
+        'turno',
+        'cliente',
+        'tipo_comprobante',
+        'usuario_anula',
+    ).prefetch_related('detalles__producto', 'pagos__metodo')
+    if usuario_puede_ver_todas_las_ventas(user):
+        return queryset
+    return queryset.filter(usuario=user)
+
+
+class VentaDetailView(generics.RetrieveAPIView):
+    serializer_class = VentaSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        return ventas_visibles(self.request.user)
+
+
 class VentaListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        queryset = Venta.objects.select_related(
-            'usuario',
-            'turno',
-            'cliente',
-            'tipo_comprobante',
-            'usuario_anula',
-        ).prefetch_related('detalles__producto', 'pagos__metodo')
-        if usuario_puede_ver_todas_las_ventas(self.request.user):
-            return queryset
-        return queryset.filter(usuario=self.request.user)
+        return ventas_visibles(self.request.user)
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -90,12 +102,10 @@ class AnularVentaView(generics.GenericAPIView):
 
     @transaction.atomic
     def post(self, request, pk):
-        venta = get_object_or_404(
-            Venta.objects.select_for_update().select_related('usuario', 'turno'),
-            pk=pk,
-        )
-        if not usuario_puede_ver_todas_las_ventas(request.user) and venta.usuario_id != request.user.pk:
-            raise PermissionDenied('No tienes permiso para anular esta venta.')
+        visibles = Venta.objects.select_for_update().select_related('usuario', 'turno')
+        if not usuario_puede_ver_todas_las_ventas(request.user):
+            visibles = visibles.filter(usuario=request.user)
+        venta = get_object_or_404(visibles, pk=pk)
         if venta.estado != Venta.Estado.COMPLETADA:
             raise ValidationError({'venta': 'Solo se pueden anular ventas completadas.'})
 

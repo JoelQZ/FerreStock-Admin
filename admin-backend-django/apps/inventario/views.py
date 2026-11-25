@@ -2,6 +2,8 @@ from rest_framework import generics, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 
+from apps.catalogo.permissions import SoloAdministradorEscribe
+
 from .models import Ingreso, MovimientoInventario, Proveedor
 from .serializers import (
     IngresoSerializer,
@@ -13,7 +15,7 @@ from .serializers import (
 class ProveedorViewSet(viewsets.ModelViewSet):
     queryset = Proveedor.objects.all()
     serializer_class = ProveedorSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SoloAdministradorEscribe,)
 
     def perform_destroy(self, instance):
         instance.estado = False
@@ -25,7 +27,7 @@ class IngresoListCreateView(generics.ListCreateAPIView):
         'detalles__producto'
     )
     serializer_class = IngresoSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SoloAdministradorEscribe,)
 
 
 class KardexListView(generics.ListAPIView):

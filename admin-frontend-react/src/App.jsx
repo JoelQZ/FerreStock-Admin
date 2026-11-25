@@ -5,12 +5,14 @@ import Catalogos from './pages/Catalogos'
 import Configuracion from './pages/Configuracion'
 import Inventario from './pages/Inventario'
 import Login from './pages/Login'
+import NoEncontrado from './pages/NoEncontrado'
 import Prediccion from './pages/Prediccion'
 import ProductoDetalle from './pages/ProductoDetalle'
 import ProductoForm from './pages/ProductoForm'
 import Productos from './pages/Productos'
 import Reportes from './pages/Reportes'
 import Usuarios from './pages/Usuarios'
+import RutaPorRol from './routes/RutaPorRol'
 import RutaPrivada from './routes/RutaPrivada'
 
 import ListaPractica from './practica/ListaPractica'
@@ -34,14 +36,16 @@ function App() {
               <Route path="productos/:id" element={<ProductoDetalle />} />
               <Route path="productos/:id/editar" element={<ProductoForm key="editar" />} />
               <Route path="catalogos" element={<Catalogos />} />
-              <Route path="reportes" element={<Reportes />} />
               <Route path="inventario" element={<Inventario />} />
               <Route path="prediccion" element={<Prediccion />} />
-              <Route path="usuarios" element={<Usuarios />} />
-              <Route path="configuracion" element={<Configuracion />} />
+              <Route element={<RutaPorRol roles={['ADMINISTRADOR']} />}>
+                <Route path="reportes" element={<Reportes />} />
+                <Route path="usuarios" element={<Usuarios />} />
+                <Route path="configuracion" element={<Configuracion />} />
+              </Route>
+              <Route path="*" element={<NoEncontrado />} />
             </Route>
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

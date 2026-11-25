@@ -250,6 +250,7 @@ Todas requieren el token JWT (`Authorization: Bearer <token>`).
 | GET | `/api/catalogo/categorias/` · `/marcas/` · `/unidades/` | Combos del formulario y filtro |
 | GET · POST · PATCH · DELETE | `/api/catalogo/categorias/?search=` | Práctica del Laboratorio 12 (`/practica`) |
 | GET | `/api/reportes/ventas/` · `/api/ventas/ventas/` · `/api/caja/turnos/` | Pantalla de reportes |
+| GET | `/api/ventas/ventas/{id}/` | Detalle de una venta (cada cajero solo las suyas) |
 | GET · POST | `/api/inventario/ingresos/` | Historial y registro de ingresos de mercadería |
 | GET · POST · PATCH · DELETE | `/api/inventario/proveedores/` | Proveedores |
 | GET | `/api/inventario/kardex/?producto=` | Kárdex (todo o de un producto) |
@@ -451,4 +452,50 @@ Cajero confirma el carrito
 **Qué se guarda en la base de datos (tabla `pago`):** método, monto, monto recibido, vuelto y código de operación (Yape/Plin) o id de transacción de la pasarela.
 
 **Qué NUNCA se guarda:** número completo de la tarjeta, fecha de vencimiento, CVV ni el PIN o clave de Yape/Plin. Esos datos solo los maneja la pasarela (norma PCI DSS).
+
+---
+
+## 12. Seguridad del panel
+
+**Capas que se aplican:**
+
+| Capa | Cómo se aplica en FerreStock |
+|---|---|
+| Contraseñas | `create_user` y `set_password` guardan solo el hash (PBKDF2 con sal); `password` es `write_only` y nunca sale en una respuesta |
+| Login con token | `POST /api/auth/login/` devuelve un JWT (`access` y `refresh`); React lo envía en `Authorization: Bearer <token>` |
+| Permisos por defecto | `IsAuthenticated` en `REST_FRAMEWORK`: sin token la API responde **401** |
+| Permisos por rol | `SoloAdministradorEscribe` (catálogo e inventario), `PuedeGestionarUsuarios`, `PuedeConsultarReportes`: el cajero recibe **403** |
+| Datos propios | Ventas y turnos filtran el queryset por `request.user`; la venta de otro cajero responde **404** |
+| Validación en el servidor | Serializers con `validate_<campo>`; precio, total, usuario y fecha los calcula Django |
+| React | Login, interceptor que renueva el token o vuelve al login con 401, menú y botones según el rol, páginas 403 y 404 |
+| Configuración | `SECRET_KEY`, `DEBUG` y `ALLOWED_HOSTS` desde `.env`; con `DEBUG=False` se activan HTTPS, cookies seguras y HSTS |
+
+**Perfiles:**
+
+| Perfil | Qué puede hacer |
+|---|---|
+| Administrador | Todo el panel |
+| Cajero (vendedor) | Solo el POS; lee el catálogo, ve sus ventas y su turno. No entra al panel |
+
+**Pruebas de seguridad:**
+
+| Prueba | Resultado esperado | Resultado obtenido |
+|---|---|---|
+| `GET /api/catalogo/productos/` sin token | 401 | 401 |
+| Cajero hace `POST /api/inventario/proveedores/` | 403 | 403 |
+| Cajero abre `GET /api/ventas/ventas/{id}/` de otro cajero | 404 | 404 |
+| Venta con cantidad 0 o producto inexistente | 400 | 400 |
+| Venta con un `total` alterado | Se ignora; total calculado por Django | Total correcto |
+| Producto con precio de venta 0 | 400 | 400 |
+| Nombre de producto con `<script>alert(1)</script>` | React lo muestra como texto | Se muestra como texto |
+| Login con contraseña incorrecta | 401 | 401 |
+
+**Verificación de producción:**
+
+```bash
+$env:DEBUG="False"
+python manage.py check --deploy
+```
+
+Quedan dos avisos que dependen del servidor real: `security.W009` (usar una `SECRET_KEY` larga de producción, que no se sube al repositorio) y `security.W021` (`SECURE_HSTS_PRELOAD`, que requiere un dominio con HTTPS).
 

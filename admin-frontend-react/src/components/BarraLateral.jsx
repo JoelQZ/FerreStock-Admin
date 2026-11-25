@@ -1,10 +1,12 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { MENU } from '../utils/menu'
+import { tieneRol } from '../utils/roles'
 import Icono from './Icono'
 
 export default function BarraLateral() {
-  const { cerrarSesion } = useAuth()
+  const { usuario, cerrarSesion } = useAuth()
+  const opciones = MENU.filter((item) => tieneRol(usuario, item.roles))
 
   return (
     <aside className="lateral">
@@ -21,7 +23,7 @@ export default function BarraLateral() {
       </div>
 
       <nav className="lateral__menu" aria-label="Menú principal">
-        {MENU.map((item) => (
+        {opciones.map((item) => (
           <NavLink key={item.ruta} to={item.ruta} className="lateral__item">
             <Icono nombre={item.icono} />
             <span>{item.texto}</span>

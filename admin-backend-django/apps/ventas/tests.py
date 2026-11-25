@@ -247,3 +247,63 @@ class VentasApiTests(APITestCase):
         )
 
 # Create your tests here.
+
+    def test_cashier_cannot_see_or_cancel_another_cashiers_sale(self):
+        response = self.client.post(reverse('venta-list'), self.payload(), format='json')
+        venta_id = response.data['id_venta']
+        otro = Usuario.objects.create_user(
+            'otro-cajero',
+            password='A-long-password-47!',
+            rol=self.usuario.rol,
+        )
+        self.client.force_authenticate(otro)
+
+        self.assertEqual(self.client.get(reverse('venta-list')).data, [])
+        self.assertEqual(
+            self.client.get(reverse('venta-detail', args=(venta_id,))).status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+        self.assertEqual(
+            self.client.post(
+                reverse('venta-anular', args=(venta_id,)),
+                {'motivo': 'Intento ajeno'},
+                format='json',
+            ).status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+        self.client.force_authenticate(self.usuario)
+        self.assertEqual(
+            self.client.get(reverse('venta-detail', args=(venta_id,))).status_code,
+            status.HTTP_200_OK,
+        )
+
+    def test_server_ignores_altered_total_and_rejects_invalid_quantity(self):
+        response = self.client.post(
+            reverse('venta-list'),
+            self.payload(total='1.00', subtotal='1.00'),
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['total'], '20.00')
+
+        response = self.client.post(
+            reverse('venta-list'),
+            self.payload(detalles=[{'producto': self.producto.id_producto, 'cantidad': '0'}]),
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        response = self.client.post(
+            reverse('venta-list'),
+            self.payload(detalles=[{'producto': 999999, 'cantidad': '1.000'}]),
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_sales_require_authentication(self):
+        self.client.force_authenticate(None)
+        self.assertEqual(
+            self.client.get(reverse('venta-list')).status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )

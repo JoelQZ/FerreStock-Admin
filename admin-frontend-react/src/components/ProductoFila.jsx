@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../context/useAuth'
 import { formatearSoles, tieneStockBajo } from '../utils/formato'
 import EtiquetaStock from './EtiquetaStock'
+import { esAdministrador } from '../utils/roles'
 import Icono from './Icono'
 
 export default function ProductoFila({ producto, onEditar, onCambiarEstado }) {
+  const { usuario } = useAuth()
+
   return (
     <tr className={producto.estado ? '' : 'inactiva'}>
       <td>
@@ -37,14 +41,16 @@ export default function ProductoFila({ producto, onEditar, onCambiarEstado }) {
             <Icono nombre="editar" tamano={15} />
             Editar
           </button>
-          <button
-            type="button"
-            className={`boton boton--secundario boton--chico${producto.estado ? ' boton--peligro' : ''}`}
-            onClick={() => onCambiarEstado(producto)}
-          >
-            <Icono nombre="apagar" tamano={15} />
-            {producto.estado ? 'Desactivar' : 'Reactivar'}
-          </button>
+          {esAdministrador(usuario) && (
+            <button
+              type="button"
+              className={`boton boton--secundario boton--chico${producto.estado ? ' boton--peligro' : ''}`}
+              onClick={() => onCambiarEstado(producto)}
+            >
+              <Icono nombre="apagar" tamano={15} />
+              {producto.estado ? 'Desactivar' : 'Reactivar'}
+            </button>
+          )}
         </div>
       </td>
     </tr>

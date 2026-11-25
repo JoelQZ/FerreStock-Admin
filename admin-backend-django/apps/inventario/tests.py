@@ -190,3 +190,40 @@ class InventarioApiTests(APITestCase):
             self.client.get(reverse('kardex-list'), {'producto': 'abc'}).status_code,
             status.HTTP_400_BAD_REQUEST,
         )
+
+    def test_cashier_can_read_but_not_write_inventory(self):
+        cajero = Usuario.objects.create_user(
+            'inventario-cajero',
+            password='A-long-password-47!',
+            rol=Rol.objects.create(nombre=Rol.Nombre.CAJERO),
+        )
+        self.client.force_authenticate(cajero)
+
+        self.assertEqual(self.client.get(reverse('proveedor-list')).status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            self.client.post(
+                reverse('proveedor-list'),
+                {'ruc': '20555555555', 'razon_social': 'No permitido'},
+                format='json',
+            ).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(
+            self.client.post(
+                reverse('ingreso-list'),
+                {
+                    'proveedor': self.proveedor.id_proveedor,
+                    'nro_documento': 'NO-001',
+                    'detalles': [
+                        {'producto': self.producto.id_producto, 'cantidad': '1.000', 'costo_unitario': '1.00'},
+                    ],
+                },
+                format='json',
+            ).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, Decimal('2.000'))
+
+        self.client.force_authenticate(None)
+        self.assertEqual(self.client.get(reverse('proveedor-list')).status_code, status.HTTP_401_UNAUTHORIZED)

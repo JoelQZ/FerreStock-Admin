@@ -6,6 +6,7 @@ from .views import (
     ClienteViewSet,
     MetodoPagoViewSet,
     TipoComprobanteViewSet,
+    VentaDetailView,
     VentaListCreateView,
 )
 
@@ -16,6 +17,7 @@ router.register('metodos-pago', MetodoPagoViewSet, basename='metodo-pago')
 
 urlpatterns = [
     path('ventas/', VentaListCreateView.as_view(), name='venta-list'),
+    path('ventas/<int:pk>/', VentaDetailView.as_view(), name='venta-detail'),
     path('ventas/<int:pk>/anular/', AnularVentaView.as_view(), name='venta-anular'),
     *router.urls,
 ]

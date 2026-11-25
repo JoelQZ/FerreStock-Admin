@@ -6,6 +6,10 @@ export function erroresDeApi(error) {
     }
   }
 
+  if (error.response.status === 403 && !error.response.data?.detail) {
+    return { general: 'No tienes permiso para realizar esta acción.', campos: {} }
+  }
+
   const datos = error.response.data
   if (!datos || typeof datos !== 'object' || Array.isArray(datos)) {
     return { general: 'Ocurrió un error inesperado en el servidor.', campos: {} }

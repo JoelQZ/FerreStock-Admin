@@ -9,6 +9,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.usuarios.models import Rol
+
 from .models import MovimientoCaja, Turno
 from .serializers import (
     CierreTurnoSerializer,
@@ -23,13 +25,19 @@ from .serializers import (
 Usuario = get_user_model()
 
 
+def usuario_puede_ver_todo(user):
+    return user.is_superuser or (
+        user.rol_id is not None
+        and user.rol.nombre == Rol.Nombre.ADMINISTRADOR
+    )
+
 class TurnoListView(generics.ListAPIView):
     serializer_class = TurnoSerializer
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         queryset = Turno.objects.select_related('usuario')
-        if self.request.user.is_superuser:
+        if usuario_puede_ver_todo(self.request.user):
             return queryset
         return queryset.filter(usuario=self.request.user)
 

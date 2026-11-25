@@ -1460,6 +1460,13 @@ a.tabla__enlace:hover {
   color: var(--texto-suave);
 }
 
+.aviso-pagina__codigo {
+  color: var(--madera);
+  font-family: var(--fuente-titulo);
+  font-size: 56px;
+  line-height: 1;
+}
+
 /* Práctica del Laboratorio 11 */
 
 .practica {
