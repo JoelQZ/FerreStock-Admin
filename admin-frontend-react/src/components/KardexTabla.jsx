@@ -7,9 +7,7 @@ const CLASE_TIPO = {
 }
 
 function origen(movimiento) {
-  if (movimiento.ingreso) return `Ingreso #${movimiento.ingreso}`
-  if (movimiento.venta) return `Venta #${movimiento.venta}`
-  return 'Ajuste'
+  return movimiento.documento || 'Ajuste'
 }
 
 export default function KardexTabla({ movimientos }) {

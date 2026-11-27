@@ -171,6 +171,7 @@ class MovimientoInventarioSerializer(serializers.ModelSerializer):
     producto_codigo = serializers.CharField(source='producto.codigo', read_only=True)
     producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
     usuario_nombre = serializers.CharField(source='usuario.usuario', read_only=True)
+    documento = serializers.SerializerMethodField()
 
     class Meta:
         model = MovimientoInventario
@@ -188,4 +189,14 @@ class MovimientoInventarioSerializer(serializers.ModelSerializer):
             'stock_anterior',
             'stock_nuevo',
             'fecha',
+            'documento',
         )
+
+    def get_documento(self, obj):
+        if obj.venta_id:
+            venta = obj.venta
+            return f'{venta.tipo_comprobante.nombre} {venta.serie}-{venta.numero:08d}'
+        if obj.ingreso_id:
+            return f'Ingreso {obj.ingreso.nro_documento}'
+        return 'Ajuste'
+

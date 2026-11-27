@@ -1,6 +1,7 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
+from .calculo import calcular_predicciones
 from .models import PrediccionReposicion
 from .serializers import FiltroPrediccionSerializer, PrediccionReposicionSerializer
 
@@ -8,6 +9,10 @@ from .serializers import FiltroPrediccionSerializer, PrediccionReposicionSeriali
 class PrediccionReposicionListView(generics.ListAPIView):
     serializer_class = PrediccionReposicionSerializer
     permission_classes = (IsAuthenticated,)
+
+    def list(self, request, *args, **kwargs):
+        calcular_predicciones()
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         filtros = FiltroPrediccionSerializer(data=self.request.query_params)

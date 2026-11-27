@@ -20,6 +20,8 @@ export const crearProducto = (producto) => api.post('/catalogo/productos/', prod
 export const actualizarProducto = (id, cambios) =>
   api.patch(`/catalogo/productos/${id}/`, cambios, incluirDesactivados).then(datos)
 export const desactivarProducto = (id) => api.delete(`/catalogo/productos/${id}/`)
+export const obtenerSiguienteCodigo = (categoria, signal) =>
+  api.get('/catalogo/productos/siguiente-codigo/', { params: { categoria }, signal }).then((respuesta) => respuesta.data.codigo)
 
 export const listarCategorias = () => api.get('/catalogo/categorias/').then(datos)
 export const listarMarcas = () => api.get('/catalogo/marcas/').then(datos)

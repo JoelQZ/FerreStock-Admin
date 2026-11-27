@@ -172,3 +172,29 @@ class CatalogoApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual([item['codigo'] for item in response.data], ['MAR-001'])
+
+    def test_next_code_uses_category_prefix_and_highest_number(self):
+        url = reverse('producto-siguiente-codigo')
+        electricidad = Categoria.objects.create(nombre='Electricidad')
+        manuales = Categoria.objects.create(nombre='Herramientas manuales')
+
+        self.assertEqual(self.client.get(url, {'categoria': electricidad.id_categoria}).data['codigo'], 'ELEC-0001')
+        self.assertEqual(self.client.get(url, {'categoria': manuales.id_categoria}).data['codigo'], 'HEMA-0001')
+
+        self.client.post(
+            reverse('producto-list'),
+            self.producto_payload(codigo='ELEC-0007', categoria=electricidad.id_categoria),
+            format='json',
+        )
+        self.client.post(
+            reverse('producto-list'),
+            self.producto_payload(codigo='7751234567890', nombre='Cable', categoria=electricidad.id_categoria),
+            format='json',
+        )
+
+        response = self.client.get(url, {'categoria': electricidad.id_categoria})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['codigo'], 'ELEC-0008')
+        self.assertEqual(self.client.get(url, {'categoria': 'abc'}).status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.client.get(url, {'categoria': 9999}).status_code, status.HTTP_404_NOT_FOUND)

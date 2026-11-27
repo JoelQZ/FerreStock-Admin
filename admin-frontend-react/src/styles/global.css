@@ -372,7 +372,8 @@ textarea {
   box-shadow: 0 0 0 3px rgba(192, 138, 85, 0.35);
 }
 
-.entrada:disabled {
+.entrada:disabled,
+.entrada[readonly] {
   background: var(--tarjeta-suave);
   color: var(--texto-suave);
 }

@@ -1,14 +1,14 @@
-from datetime import datetime, timezone
 from decimal import Decimal
 
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.caja.models import Turno
 from apps.catalogo.models import Categoria, Marca, Producto, UnidadMedida
 from apps.usuarios.models import Rol, Usuario
-
-from .models import PrediccionReposicion
+from apps.ventas.models import DetalleVenta, TipoComprobante, Venta
 
 
 class IaApiTests(APITestCase):
@@ -23,36 +23,66 @@ class IaApiTests(APITestCase):
         categoria = Categoria.objects.create(nombre='IA')
         marca = Marca.objects.create(nombre='Marca IA')
         unidad = UnidadMedida.objects.create(nombre='Unidad IA', abreviatura='und')
+        datos_producto = {'precio_compra': '5.00', 'precio_venta': '10.00', 'categoria': categoria, 'marca': marca, 'unidad': unidad}
         cls.producto = Producto.objects.create(
             codigo='IA-001',
-            nombre='Producto con predicción',
-            precio_compra='5.00',
-            precio_venta='10.00',
+            nombre='Producto con ventas',
             stock=Decimal('2.000'),
             stock_minimo=Decimal('3.000'),
-            categoria=categoria,
-            marca=marca,
-            unidad=unidad,
+            **datos_producto,
         )
-        cls.prediccion = PrediccionReposicion.objects.create(
-            producto=cls.producto,
-            fecha_calculo=datetime(2026, 10, 13, tzinfo=timezone.utc),
-            demanda_estimada=Decimal('1.250'),
-            dias_para_agotarse=2,
-            cantidad_sugerida=Decimal('8.000'),
+        Producto.objects.create(
+            codigo='IA-002',
+            nombre='Producto sin ventas y con stock',
+            stock=Decimal('50.000'),
+            stock_minimo=Decimal('5.000'),
+            **datos_producto,
         )
+
+        ahora = timezone.now()
+        turno = Turno.objects.create(usuario=cls.usuario, apertura=ahora, monto_inicial='0.00')
+        boleta = TipoComprobante.objects.create(nombre='Boleta IA', serie='B901')
+        for numero, cantidad, estado in ((1, '30.000', Venta.Estado.COMPLETADA), (2, '60.000', Venta.Estado.ANULADA)):
+            venta = Venta.objects.create(
+                fecha_hora=ahora,
+                subtotal='0.00',
+                igv='0.00',
+                total='0.00',
+                estado=estado,
+                usuario=cls.usuario,
+                turno=turno,
+                tipo_comprobante=boleta,
+                serie='B901',
+                numero=numero,
+            )
+            DetalleVenta.objects.create(
+                venta=venta,
+                producto=cls.producto,
+                cantidad=Decimal(cantidad),
+                precio_unitario='10.00',
+                subtotal='0.00',
+            )
 
     def setUp(self):
         self.client.force_authenticate(self.usuario)
 
-    def test_lists_prediction_with_current_product_stock(self):
+    def test_calculates_prediction_from_completed_sales(self):
         response = self.client.get(reverse('prediccion-list'))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['producto_codigo'], 'IA-001')
-        self.assertEqual(response.data[0]['stock_actual'], '2.000')
-        self.assertEqual(response.data[0]['cantidad_sugerida'], '8.000')
+        prediccion = response.data[0]
+        self.assertEqual(prediccion['producto_codigo'], 'IA-001')
+        self.assertEqual(prediccion['stock_actual'], '2.000')
+        self.assertEqual(prediccion['demanda_estimada'], '1.000')
+        self.assertEqual(prediccion['dias_para_agotarse'], 2)
+        self.assertEqual(prediccion['cantidad_sugerida'], '16.000')
+
+    def test_recalculates_without_duplicating_predictions(self):
+        self.client.get(reverse('prediccion-list'))
+        response = self.client.get(reverse('prediccion-list'))
+
+        self.assertEqual(len(response.data), 1)
 
     def test_filters_predictions_and_rejects_invalid_query_params(self):
         response = self.client.get(
@@ -61,6 +91,7 @@ class IaApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
+        self.assertEqual(self.client.get(reverse('prediccion-list'), {'dias_maximos': '1'}).data, [])
 
         invalid = self.client.get(reverse('prediccion-list'), {'dias_maximos': 'tomorrow'})
         self.assertEqual(invalid.status_code, status.HTTP_400_BAD_REQUEST)
@@ -73,5 +104,3 @@ class IaApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, [])
-
-# Create your tests here.

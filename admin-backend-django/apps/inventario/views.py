@@ -34,7 +34,7 @@ class KardexListView(generics.ListAPIView):
     queryset = MovimientoInventario.objects.select_related(
         'producto',
         'usuario',
-        'venta',
+        'venta__tipo_comprobante',
         'ingreso',
     )
     serializer_class = MovimientoInventarioSerializer

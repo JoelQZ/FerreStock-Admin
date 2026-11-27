@@ -136,7 +136,7 @@ export default function Reportes() {
               <option value="">Todos los turnos</option>
               {turnos.map((item) => (
                 <option key={item.id_turno} value={item.id_turno}>
-                  #{item.id_turno} · {item.usuario_nombre || 'Cajero'} · {item.apertura.slice(0, 10)}{' '}
+                  Turno de {item.usuario_nombre || 'Cajero'} · {item.apertura.slice(0, 10)}{' '}
                   {item.apertura.slice(11, 16)} · {item.estado === 'ABIERTO' ? 'Abierto' : 'Cerrado'}
                 </option>
               ))}

@@ -43,9 +43,8 @@ export default function ProductoFormulario({
             className="entrada codigo"
             name="codigo"
             value={form.codigo}
-            onChange={cambiar}
-            maxLength={50}
-            placeholder="Ej.: MART-016"
+            readOnly
+            placeholder="Se genera al elegir la categoría"
           />
         </Campo>
         <Campo etiqueta="Marca" obligatorio error={errores.marca}>
@@ -99,7 +98,16 @@ export default function ProductoFormulario({
             />
           </div>
         </Campo>
-        <Campo etiqueta="Precio de costo" obligatorio error={errores.precio_compra}>
+        <Campo
+          etiqueta="Precio de costo"
+          obligatorio
+          error={errores.precio_compra}
+          ayuda={
+            form.precio_venta !== '' && Number(form.precio_compra) > Number(form.precio_venta)
+              ? 'Atención: el costo es mayor que el precio de venta, se vendería con pérdida.'
+              : undefined
+          }
+        >
           <div className="con-prefijo">
             <span>S/</span>
             <input

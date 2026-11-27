@@ -48,6 +48,8 @@ export default function Productos() {
 
   const clave = `${buscar}|${categoria}|${verTodos}`
 
+  //AJAX
+
   useEffect(() => {
     const controlador = new AbortController()
     const params = {}

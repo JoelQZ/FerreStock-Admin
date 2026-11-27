@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { actualizarProducto, crearProducto, obtenerProducto } from '../api/catalogo'
+import { actualizarProducto, crearProducto, obtenerProducto, obtenerSiguienteCodigo } from '../api/catalogo'
 import Aviso from '../components/Aviso'
 import Encabezado from '../components/Encabezado'
 import Icono from '../components/Icono'
@@ -28,10 +28,16 @@ const DECIMALES_NO_NEGATIVOS = {
   stock_minimo: 'El stock mínimo no puede ser negativo.',
 }
 
+const FORMATO_NUMERICO = {
+  precio_venta: /^\d{0,6}(\.\d{0,2})?$/,
+  precio_compra: /^\d{0,6}(\.\d{0,2})?$/,
+  stock_minimo: /^\d{0,7}(\.\d{0,3})?$/,
+}
+
 function validar(form) {
   const errores = {}
   if (!form.nombre.trim()) errores.nombre = 'El nombre es obligatorio.'
-  if (!form.codigo.trim()) errores.codigo = 'El código es obligatorio.'
+  if (!form.codigo.trim()) errores.codigo = 'El código se genera al elegir la categoría.'
   if (!form.categoria) errores.categoria = 'Selecciona una categoría.'
   if (!form.marca) errores.marca = 'Selecciona una marca.'
   if (!form.unidad) errores.unidad = 'Selecciona una unidad de medida.'
@@ -86,6 +92,18 @@ export default function ProductoForm() {
   const [errores, setErrores] = useState({})
   const [general, setGeneral] = useState('')
   const [guardando, setGuardando] = useState(false)
+  useEffect(() => {
+    if (esEdicion || !form.categoria) return undefined
+    const controlador = new AbortController()
+    obtenerSiguienteCodigo(form.categoria, controlador.signal).then(
+      (codigo) => {
+        setForm((previo) => ({ ...previo, codigo }))
+        setErrores((previos) => ({ ...previos, codigo: undefined }))
+      },
+      () => {},
+    )
+    return () => controlador.abort()
+  }, [form.categoria, esEdicion])
 
   useEffect(() => {
     if (!esEdicion) return undefined
@@ -108,6 +126,7 @@ export default function ProductoForm() {
   }, [id, esEdicion])
 
   function cambiarCampo(nombre, valor) {
+    if (FORMATO_NUMERICO[nombre] && !FORMATO_NUMERICO[nombre].test(valor)) return
     setForm((previo) => ({ ...previo, [nombre]: valor }))
     setErrores((previos) => ({ ...previos, [nombre]: undefined }))
   }
